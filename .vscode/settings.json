@@ -1,48 +1,73 @@
 {
-  // ── CSS Validation ──
-  // Disable built-in CSS validators — they don't understand Tailwind v4 syntax
-  // (e.g. @theme, @utility, bg-linear-to-br, arbitrary values like from-[var(--x)])
+  // ════════════════════════════════════════════════════════
+  // CSS Validation — fully disabled for Tailwind v4 compat
+  // ════════════════════════════════════════════════════════
+  //
+  // VS Code's built-in CSS language server does not understand:
+  //   • Tailwind v4 directives  (@tailwind, @theme, @utility, @layer)
+  //   • v4 gradient classes     (bg-linear-to-br, bg-linear-to-r, …)
+  //   • Arbitrary CSS variables (from-[var(--x)], via-[var(--y)])
+  //
+  // Disabling all three built-in validators eliminates every
+  // yellow squiggle that originates from the CSS linter.
   "css.validate": false,
   "less.validate": false,
   "scss.validate": false,
 
-  // Suppress warnings for unknown CSS at-rules (@tailwind, @layer, @apply, @theme, @utility)
+  // Belt-and-suspenders: individual lint rule overrides
+  // (active only when css.validate is true, kept for safety)
   "css.lint.unknownAtRules": "ignore",
-  // Suppress warnings for unknown CSS properties (Tailwind v4 custom props)
   "css.lint.unknownProperties": "ignore",
-  // Suppress invalid value warnings (arbitrary values like bg-[var(--x)] look odd to the linter)
   "css.lint.validProperties": [],
 
-  // ── TypeScript ──
-  // Point VS Code TS server to the workspace TypeScript (not bundled VS Code one)
+  // ════════════════════════════════════════════════════════
+  // Tailwind CSS IntelliSense — v4 configuration
+  // ════════════════════════════════════════════════════════
+  //
+  // Point the extension at the CSS entry point (not tailwind.config.js)
+  // so it learns all @theme variables and custom utilities.
+  // Path must be relative to the WORKSPACE ROOT (the folder VS Code opens).
+  "tailwindCSS.experimental.configFile": "app/globals.css",
+
+  // Suppress IntelliSense false-positive warnings for:
+  //   • bg-linear-to-*  (new v4 gradient API)
+  //   • arbitrary value classes the extension flags as unknown
+  "tailwindCSS.lint.invalidTailwindDirective": "ignore",
+  "tailwindCSS.lint.unknownAtRules": "ignore",
+  "tailwindCSS.lint.cssConflict": "warning",
+
+  // Teach the extension to recognize class strings inside cn() and cva()
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "\"([^\"]*)\""],
+    ["cva\\(([^)]*)\\)", "\"([^\"]*)\""]
+  ],
+
+  // ════════════════════════════════════════════════════════
+  // TypeScript
+  // ════════════════════════════════════════════════════════
   "typescript.tsdk": "node_modules/typescript/lib",
-  // Enable strict type checking in the editor
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  // Auto-import completions
   "typescript.suggest.autoImports": true,
 
-  // ── ESLint ──
-  // Run ESLint on save
+  // ════════════════════════════════════════════════════════
+  // ESLint
+  // ════════════════════════════════════════════════════════
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
 
-  // ── Files to exclude from Problems panel ──
-  // Exclude generated Next.js files that produce false positives
+  // ════════════════════════════════════════════════════════
+  // File watcher — exclude heavy generated dirs
+  // ════════════════════════════════════════════════════════
   "typescript.tsserver.watchOptions": {},
   "files.watcherExclude": {
     "**/.next/**": true,
     "**/node_modules/**": true
-  },
-
-  // ── Tailwind IntelliSense (v4) ──
-  // Tell the Tailwind extension where the CSS entry point lives so it
-  // understands @theme variables, custom utilities, and v4-only class names
-  "tailwindCSS.experimental.configFile": "sina-fn-app/app/globals.css",
-  // Support cn() and cva() helper patterns for class name completions
-  "tailwindCSS.experimental.classRegex": [
-    ["cn\\(([^)]*)\\)", "\"([^\"]*)\""],
-    ["cva\\(([^)]*)\\)", "\"([^\"]*)\""]
-  ]
+  }
 }
