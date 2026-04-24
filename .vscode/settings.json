@@ -1,0 +1,33 @@
+{
+  // ── CSS ──
+  "css.lint.unknownAtRules": "ignore",
+
+  // ── TypeScript ──
+  // Point VS Code TS server to the workspace TypeScript (not bundled VS Code one)
+  "typescript.tsdk": "node_modules/typescript/lib",
+  // Enable strict type checking in the editor
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  // Auto-import completions
+  "typescript.suggest.autoImports": true,
+
+  // ── ESLint ──
+  // Run ESLint on save
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+
+  // ── Files to exclude from Problems panel ──
+  // Exclude generated Next.js files that produce false positives
+  "typescript.tsserver.watchOptions": {},
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+
+  // ── Tailwind ──
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "\"([^\"]*)\""],
+    ["cva\\(([^)]*)\\)", "\"([^\"]*)\""]
+  ]
+}
