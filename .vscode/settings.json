@@ -1,6 +1,17 @@
 {
-  // ── CSS ──
+  // ── CSS Validation ──
+  // Disable built-in CSS validators — they don't understand Tailwind v4 syntax
+  // (e.g. @theme, @utility, bg-linear-to-br, arbitrary values like from-[var(--x)])
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+
+  // Suppress warnings for unknown CSS at-rules (@tailwind, @layer, @apply, @theme, @utility)
   "css.lint.unknownAtRules": "ignore",
+  // Suppress warnings for unknown CSS properties (Tailwind v4 custom props)
+  "css.lint.unknownProperties": "ignore",
+  // Suppress invalid value warnings (arbitrary values like bg-[var(--x)] look odd to the linter)
+  "css.lint.validProperties": [],
 
   // ── TypeScript ──
   // Point VS Code TS server to the workspace TypeScript (not bundled VS Code one)
@@ -25,7 +36,11 @@
     "**/node_modules/**": true
   },
 
-  // ── Tailwind ──
+  // ── Tailwind IntelliSense (v4) ──
+  // Tell the Tailwind extension where the CSS entry point lives so it
+  // understands @theme variables, custom utilities, and v4-only class names
+  "tailwindCSS.experimental.configFile": "sina-fn-app/app/globals.css",
+  // Support cn() and cva() helper patterns for class name completions
   "tailwindCSS.experimental.classRegex": [
     ["cn\\(([^)]*)\\)", "\"([^\"]*)\""],
     ["cva\\(([^)]*)\\)", "\"([^\"]*)\""]
