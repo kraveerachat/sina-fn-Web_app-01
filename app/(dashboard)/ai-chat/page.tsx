@@ -1,21 +1,22 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// AI Chat Page — Gemini-powered Transaction Parser
-// No direct Supabase calls in this file.
-// Uses hooks exclusively: useAuth, useWallets, useToast
+// AI Chat Page — Agentic Intent Router Frontend
+// Handles: record_transaction, add_wallet, set_budget, add_debt,
+//          query_data, general_chat
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState, useRef, useEffect }   from 'react';
 import { useRouter }                     from 'next/navigation';
 import { motion, AnimatePresence }        from 'framer-motion';
-import { Send, Bot, User, Loader2, Check, X, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Loader2, Check, X, Sparkles, Wallet, PiggyBank, CreditCard, Target } from 'lucide-react';
 import { formatCurrency }                from '@/lib/utils';
 import { useAuth }                       from '@/hooks/useAuth';
 import { useWallets }                    from '@/hooks/useWallets';
 import { useToast }                      from '@/hooks/useToast';
-import { getOrCreateCategory }           from '@/lib/supabase/queries';
+import { addTransaction, createWalletWithOpeningBalance, upsertBudget, getGoals } from '@/lib/supabase/queries';
 import { supabase }                      from '@/lib/supabase/client';
+import { dispatchAppMutate }             from '@/lib/events';
 
 interface ParsedTx {
   description: string;
@@ -23,23 +24,78 @@ interface ParsedTx {
   type: 'income' | 'expense';
   category: string;
   emoji: string;
+  wallet_hint: string;
 }
+
+// ── Smart wallet matching — case-insensitive, partial match, cash fallback ──
+const CASH_NAMES = ['cash', 'เงินสด', 'กระเป๋าหลัก'];
+
+function matchWallet(hint: string, wallets: { id: string; name: string; type: string }[]): string {
+  if (wallets.length === 0) return '';
+  const h = hint.toLowerCase().trim();
+
+  const exact = wallets.find((w) => w.name.toLowerCase() === h);
+  if (exact) return exact.id;
+
+  const partial = wallets.find((w) => {
+    const wn = w.name.toLowerCase();
+    return wn.includes(h) || h.includes(wn);
+  });
+  if (partial) return partial.id;
+
+  const aliasMap: Record<string, string[]> = {
+    scb:    ['ไทยพาณิชย์', 'scb', 'siam commercial'],
+    kbank:  ['กสิกร', 'kbank', 'kasikorn'],
+    ktb:    ['กรุงไทย', 'ktb', 'krungthai'],
+    ttb:    ['ทหารไทย', 'ttb', 'tmbthanachart', 'ธนชาต'],
+    bbl:    ['กรุงเทพ', 'bbl', 'bangkok bank'],
+    promptpay: ['promptpay', 'พร้อมเพย์'],
+  };
+
+  for (const [, aliases] of Object.entries(aliasMap)) {
+    if (aliases.some((a) => h.includes(a) || a.includes(h))) {
+      const found = wallets.find((w) => {
+        const wn = w.name.toLowerCase();
+        return aliases.some((a) => wn.includes(a) || a.includes(wn));
+      });
+      if (found) return found.id;
+    }
+  }
+
+  const cashWallet = wallets.find((w) =>
+    CASH_NAMES.some((cn) => w.name.toLowerCase().includes(cn)) || w.type === 'cash'
+  );
+  if (cashWallet) return cashWallet.id;
+
+  return wallets[0].id;
+}
+
+type IntentType = 'record_transaction' | 'add_wallet' | 'set_budget' | 'add_debt' | 'add_to_goal' | 'query_data' | 'general_chat' | 'error';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'ai';
   content: string;
+  intent?: IntentType;
   parsedTransactions?: ParsedTx[];
+  actionData?: {
+    name?: string;
+    balance?: number;
+    category?: string;
+    amount?: number;
+    interestRate?: number;
+    goal_name?: string;
+  };
   savedStatus?: 'pending' | 'saved' | 'cancelled';
   timestamp: Date;
 }
 
 const SUGGESTIONS = [
   'กินข้าว 50 กาแฟ 65',
-  'grab 120 bts 44',
-  'เงินเดือน 32000',
-  'ค่าไฟ 850 ค่าน้ำ 120',
-  'Netflix 349 Spotify 129',
+  'เพิ่มกระเป๋า TTB 5000',
+  'ตั้งงบอาหาร 3000',
+  'เก็บเงินค่า iPhone 2000',
+  'สรุปเดือนนี้หน่อย',
 ];
 
 export default function AiChatPage() {
@@ -52,7 +108,7 @@ export default function AiChatPage() {
     {
       id: 'welcome',
       role: 'ai',
-      content: 'สวัสดีครับ! 👋 ผมเป็น AI ช่วยบันทึกรายรับ-รายจ่ายของคุณ\n\nพิมพ์รายการ เช่น:\n"กินข้าว 50 กาแฟ 65"\n"ได้รับเงินสด 1000 ได้รับเงินโอน 5000"\nผมจะแปลงเป็นรายการทำธุรกรรมให้อัตโนมัติ ✨',
+      content: 'สวัสดีครับ! 👋 ผมเป็น Sina AI ช่วยจัดการการเงินของคุณ\n\nสิ่งที่ทำได้:\n• บันทึกรายรับ-รายจ่าย: "กินข้าว 50 กาแฟ 65"\n• เพิ่มกระเป๋าเงิน: "เพิ่มกระเป๋า TTB 5000"\n• ตั้งงบประมาณ: "ตั้งงบอาหาร 3000"\n• ออมเงินเป้าหมาย: "เก็บเงินค่า iPhone 2000"\n• ถามทั่วไป: "สรุปเดือนนี้หน่อย"',
       timestamp: new Date(),
     },
   ]);
@@ -65,7 +121,7 @@ export default function AiChatPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ── Parse via Gemini API route ──
+  // ── Parse via Agentic Intent Router ──
   const handleSend = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || isLoading) return;
@@ -85,29 +141,125 @@ export default function AiChatPage() {
       const res  = await fetch('/api/ai/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText }),
+        body: JSON.stringify({
+          message: messageText,
+          wallets: wallets.map((w) => ({ name: w.name, type: w.type })),
+        }),
       });
       const data = await res.json();
 
-      if (data.error) throw new Error(data.error);
+      if (data.intent === 'error') throw new Error(data.message || 'Unknown error');
 
-      const aiMsg: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        role: 'ai',
-        content: `แปลงสำเร็จ! พบ ${data.transactions.length} รายการ:`,
-        parsedTransactions: data.transactions,
-        savedStatus: 'pending',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      // ── Route response by intent ──
+      switch (data.intent as IntentType) {
+
+        case 'record_transaction': {
+          const txData = data.data;
+          const aiMsg: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            role: 'ai',
+            intent: 'record_transaction',
+            content: txData.transactions.length > 0
+              ? `แปลงสำเร็จ! พบ ${txData.transactions.length} รายการ:`
+              : txData.message || 'ไม่พบรายการทางการเงิน',
+            parsedTransactions: txData.transactions,
+            savedStatus: txData.transactions.length > 0 ? 'pending' : undefined,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          break;
+        }
+
+        case 'add_wallet': {
+          const walletData = data.data;
+          const aiMsg: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            role: 'ai',
+            intent: 'add_wallet',
+            content: walletData
+              ? `ต้องการเพิ่มกระเป๋า "${walletData.name}" ยอดเริ่มต้น ${formatCurrency(walletData.balance)} ใช่ไหม?`
+              : data.message || 'ไม่สามารถแยกแยะข้อมูลได้',
+            actionData: walletData,
+            savedStatus: walletData ? 'pending' : undefined,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          break;
+        }
+
+        case 'set_budget': {
+          const budgetData = data.data;
+          const aiMsg: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            role: 'ai',
+            intent: 'set_budget',
+            content: budgetData
+              ? `ตั้งงบประมาณ "${budgetData.category}" จำนวน ${formatCurrency(budgetData.amount)} ใช่ไหม?`
+              : data.message || 'ไม่สามารถแยกแยะข้อมูลได้',
+            actionData: budgetData,
+            savedStatus: budgetData ? 'pending' : undefined,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          break;
+        }
+
+        case 'add_debt': {
+          const debtData = data.data;
+          const aiMsg: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            role: 'ai',
+            intent: 'add_debt',
+            content: debtData
+              ? `บันทึกหนี้ "${debtData.name}" จำนวน ${formatCurrency(debtData.amount)}${debtData.interestRate > 0 ? ` ดอกเบี้ย ${debtData.interestRate}%` : ''} ใช่ไหม?`
+              : data.message || 'ไม่สามารถแยกแยะข้อมูลได้',
+            actionData: debtData,
+            savedStatus: debtData ? 'pending' : undefined,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          break;
+        }
+
+        case 'add_to_goal': {
+          const goalData = data.data;
+          const aiMsg: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            role: 'ai',
+            intent: 'add_to_goal',
+            content: goalData
+              ? `ออมเงินเข้าเป้าหมาย "${goalData.goal_name}" จำนวน ${formatCurrency(goalData.amount)} ใช่ไหม?`
+              : data.message || 'ไม่สามารถแยกแยะข้อมูลได้',
+            actionData: goalData,
+            savedStatus: goalData ? 'pending' : undefined,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMsg]);
+          break;
+        }
+
+        case 'query_data':
+        case 'general_chat':
+        default: {
+          const chatMsg: ChatMessage = {
+            id: `ai-${Date.now()}`,
+            role: 'ai',
+            intent: data.intent,
+            content: data.data?.message || 'ไม่สามารถตอบได้ในตอนนี้',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, chatMsg]);
+          break;
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[AI Chat] parse error:', msg);
+      console.error('[AI Chat] error:', msg);
 
       const errorMsg: ChatMessage = {
         id: `ai-err-${Date.now()}`,
         role: 'ai',
-        content: '❌ ไม่สามารถแปลงข้อความได้ กรุณาลองใหม่อีกครั้ง',
+        content: `❌ ${msg}`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -117,68 +269,167 @@ export default function AiChatPage() {
     }
   };
 
-  // ── Save parsed transactions — all DB via queries layer ──
+  // ── Save / Confirm action based on intent ──
   const handleSave = async (msgId: string) => {
     if (!user) {
       toast('กรุณาเข้าสู่ระบบก่อน', 'error');
       return;
     }
-    if (wallets.length === 0) {
-      toast('กรุณาเพิ่มกระเป๋าเงินก่อน — ไปที่หน้า Wallets', 'warning');
-      return;
-    }
 
-    const walletId = wallets[0].id;
-    const msg      = messages.find((m) => m.id === msgId);
-    if (!msg?.parsedTransactions) return;
+    const msg = messages.find((m) => m.id === msgId);
+    if (!msg) return;
 
     try {
-      let totalBalanceChange = 0;
+      switch (msg.intent) {
 
-      for (const tx of msg.parsedTransactions) {
-        // Resolve category via queries layer (creates if not exists)
-        const categoryId = await getOrCreateCategory(tx.category || 'อื่นๆ', user.id);
+        // ── Save Transactions ──
+        case 'record_transaction': {
+          if (!msg.parsedTransactions) return;
+          if (wallets.length === 0) {
+            toast('กรุณาเพิ่มกระเป๋าเงินก่อน — ไปที่หน้า Wallets', 'warning');
+            return;
+          }
 
-        const { error: insertError } = await supabase
-          .from('transactions')
-          .insert({
-            user_id:          user.id,
-            wallet_id:        walletId,
-            category_id:      categoryId,
-            amount:           tx.amount,
-            type:             tx.type,
-            note:             tx.description,
-            transaction_date: new Date().toISOString(),
-            created_at:       new Date().toISOString(),
-            updated_at:       new Date().toISOString(),
-            is_deleted:       false,
+          for (const tx of msg.parsedTransactions) {
+            const walletId = matchWallet(tx.wallet_hint, wallets);
+            if (!walletId) {
+              toast(`ไม่พบกระเป๋าเงินที่ตรงกับ: ${tx.wallet_hint}`, 'warning');
+              continue;
+            }
+
+            await addTransaction(
+              {
+                note:             tx.description,
+                categoryName:     tx.category || 'อื่นๆ',
+                amount:           tx.amount,
+                type:             tx.type,
+                transaction_date: new Date().toISOString(),
+                walletId:         walletId,
+                walletName:       wallets.find(w => w.id === walletId)?.name ?? 'กระเป๋าหลัก',
+                walletType:       wallets.find(w => w.id === walletId)?.type ?? 'cash',
+                emoji:            tx.emoji || '💸',
+              },
+              user.id
+            );
+          }
+
+          toast('บันทึกรายการเรียบร้อยแล้ว', 'success');
+          break;
+        }
+
+        // ── Add Wallet ──
+        case 'add_wallet': {
+          const wd = msg.actionData;
+          if (!wd) return;
+
+          await createWalletWithOpeningBalance(
+            {
+              name:    wd.name,
+              type:    'cash',
+              icon:    '💳',
+              balance: wd.balance,
+              user_id: user.id,
+            },
+            user.id
+          );
+
+          toast(`เพิ่มกระเป๋า "${wd.name}" สำเร็จ!`, 'success');
+          break;
+        }
+
+        // ── Set Budget ──
+        case 'set_budget': {
+          const bd = msg.actionData;
+          if (!bd) return;
+
+          const now = new Date();
+          await upsertBudget(
+            {
+              categoryName:   bd.category,
+              icon:           '📊',
+              spent:          0,
+              limit:          bd.amount,
+              color:          '#8B8CF8',
+              rolloverPolicy: 'reset',
+              month:          now.getMonth() + 1,
+              year:           now.getFullYear(),
+            },
+            user.id
+          );
+
+          toast(`ตั้งงบ "${bd.category}" ${formatCurrency(bd.amount)} สำเร็จ!`, 'success');
+          break;
+        }
+
+        // ── Add Debt ──
+        case 'add_debt': {
+          const dd = msg.actionData;
+          if (!dd) return;
+
+          const { error } = await supabase
+            .from('debts')
+            .insert([{
+              user_id:          user.id,
+              name:             dd.name,
+              total_amount:     dd.amount,
+              remaining_amount: dd.amount,
+              interest_rate:    dd.interestRate || 0,
+              is_deleted:       false,
+            }]);
+
+          if (error) throw error;
+
+          toast(`บันทึกหนี้ "${dd.name}" ${formatCurrency(dd.amount)} สำเร็จ!`, 'success');
+          break;
+        }
+
+        // ── Add to Goal (Savings) ──
+        case 'add_to_goal': {
+          const gd = msg.actionData;
+          if (!gd) return;
+
+          // Find the matching goal by name (fuzzy match)
+          const goals = await getGoals(user.id);
+          const goalName = gd.goal_name.toLowerCase().trim();
+          const matchedGoal = goals.find((g) => {
+            const gn = g.name.toLowerCase();
+            return gn.includes(goalName) || goalName.includes(gn);
           });
 
-        if (insertError) throw insertError;
-        totalBalanceChange += tx.type === 'income' ? tx.amount : -tx.amount;
+          if (!matchedGoal || !matchedGoal.linked_wallet_id) {
+            toast(`ไม่พบเป้าหมาย "${gd.goal_name}" — กรุณาสร้างเป้าหมายก่อน`, 'warning');
+            return;
+          }
+
+          // Insert income transaction into the goal's linked wallet
+          await addTransaction(
+            {
+              note:             `ออมเงิน — ${matchedGoal.name}`,
+              categoryName:     'ออมเงิน',
+              amount:           gd.amount,
+              type:             'income',
+              transaction_date: new Date().toISOString(),
+              walletId:         matchedGoal.linked_wallet_id,
+              walletName:       matchedGoal.wallet?.name ?? `🎯 ${matchedGoal.name}`,
+              walletType:       'savings',
+              emoji:            '🎯',
+            },
+            user.id
+          );
+
+          toast(`ออมเงิน ${formatCurrency(gd.amount)} เข้าเป้าหมาย "${matchedGoal.name}" สำเร็จ!`, 'success');
+          break;
+        }
+
+        default:
+          return;
       }
 
-      // Atomic balance update — read current then write new
-      const { data: currentWallet } = await supabase
-        .from('wallets')
-        .select('balance')
-        .eq('id', walletId)
-        .single();
-
-      const { error: balanceError } = await supabase
-        .from('wallets')
-        .update({
-          balance:    (currentWallet?.balance || 0) + totalBalanceChange,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', walletId);
-
-      if (balanceError) throw balanceError;
-
+      // Mark as saved
       setMessages((prev) =>
         prev.map((m) => m.id === msgId ? { ...m, savedStatus: 'saved' as const } : m)
       );
-      toast('บันทึกและอัปเดตยอดคงเหลือแล้ว', 'success');
+      dispatchAppMutate();
 
     } catch (err) {
       console.error('[AI Chat] save error:', err);
@@ -192,13 +443,36 @@ export default function AiChatPage() {
     );
   };
 
+  // ── Helper: Get intent icon ──
+  const getIntentIcon = (intent?: IntentType) => {
+    switch (intent) {
+      case 'add_wallet':  return <Wallet size={14} className="text-[var(--cyber-green)]" />;
+      case 'set_budget':  return <PiggyBank size={14} className="text-[var(--cyber-green)]" />;
+      case 'add_debt':    return <CreditCard size={14} className="text-[var(--cyber-green)]" />;
+      case 'add_to_goal': return <Target size={14} className="text-[var(--cyber-green)]" />;
+      default:            return null;
+    }
+  };
+
+  // ── Helper: Get confirm button label ──
+  const getConfirmLabel = (intent?: IntentType) => {
+    switch (intent) {
+      case 'record_transaction': return 'Save Transactions';
+      case 'add_wallet':         return 'Add Wallet';
+      case 'set_budget':         return 'Set Budget';
+      case 'add_debt':           return 'Add Debt';
+      case 'add_to_goal':        return 'Save to Goal';
+      default:                   return 'Confirm';
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px-48px)] lg:h-[calc(100vh-64px-64px)]">
       {/* Page title */}
       <div className="shrink-0 mb-4">
         <div className="flex items-center gap-2 mb-1">
           <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-green)] hud-dot" />
-          <span className="cyber-label-green">AI ASSISTANT // GEMINI</span>
+          <span className="cyber-label-green">AI ASSISTANT // SINA AGENT</span>
         </div>
         <h1 className="text-2xl font-bold text-[var(--cyber-text)]">แชทกับ AI</h1>
       </div>
@@ -228,19 +502,31 @@ export default function AiChatPage() {
                     : 'bg-[var(--cyber-surface)] border border-[var(--cyber-border)] text-[var(--cyber-text)]'
                   }
                 `}>
+                  {/* Intent badge for non-transaction actions */}
+                  {msg.intent && msg.intent !== 'record_transaction' && msg.intent !== 'query_data' && msg.intent !== 'general_chat' && msg.intent !== 'error' && (
+                    <div className="flex items-center gap-1.5 mb-2">
+                      {getIntentIcon(msg.intent)}
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--cyber-text-muted)] font-mono">
+                        {msg.intent.replace('_', ' ')}
+                      </span>
+                    </div>
+                  )}
+
                   <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
 
-                  {/* Parsed transaction cards */}
+                  {/* ── Transaction preview cards ── */}
                   {msg.parsedTransactions && msg.parsedTransactions.length > 0 && (
                     <div className="mt-3 space-y-2">
                       {msg.parsedTransactions.map((tx, i) => (
-                        <div key={i} className="flex items-center gap-3 bg-[var(--cyber-surface-alt)] border border-[var(--cyber-border)] p-3">
-                          <span className="text-lg shrink-0">{tx.emoji}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-[var(--cyber-text)] truncate">{tx.description}</p>
-                            <p className="cyber-label mt-0.5">{tx.category}</p>
+                        <div key={i} className="flex items-center gap-3 bg-white/5 border border-white/10 p-3 rounded-xl">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">
+                            {tx.emoji}
                           </div>
-                          <p className={`text-sm font-bold font-mono shrink-0 ${
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[var(--cyber-text)] truncate">{tx.description}</p>
+                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">{tx.category}</p>
+                          </div>
+                          <p className={`text-sm font-semibold font-mono shrink-0 ${
                             tx.type === 'income' ? 'text-[var(--cyber-green)]' : 'text-[var(--cyber-red)]'
                           }`}>
                             {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
@@ -249,8 +535,8 @@ export default function AiChatPage() {
                       ))}
 
                       {/* Total row */}
-                      <div className="flex items-center justify-between pt-2 border-t border-[var(--cyber-border)]">
-                        <span className="cyber-label">TOTAL</span>
+                      <div className="flex items-center justify-between pt-2 px-1 border-t border-white/10">
+                        <span className="text-xs text-[var(--cyber-text-muted)]">TOTAL</span>
                         <span className="text-sm font-bold font-mono text-[var(--cyber-text)]">
                           {formatCurrency(
                             msg.parsedTransactions.reduce(
@@ -259,51 +545,129 @@ export default function AiChatPage() {
                           )}
                         </span>
                       </div>
+                    </div>
+                  )}
 
-                      {/* Action buttons */}
-                      {msg.savedStatus === 'pending' && (
-                        <div className="flex gap-2 pt-2">
-                          <button
-                            onClick={() => handleSave(msg.id)}
-                            className="flex-1 py-1.5 flex items-center justify-center gap-1 text-xs font-mono border border-[var(--cyber-green)]/50 bg-[var(--cyber-green)]/20 text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/30 transition-all uppercase"
-                          >
-                            <Check size={12} /> บันทึกทั้งหมด (SAVE)
-                          </button>
-                          <button
-                            onClick={() => handleCancel(msg.id)}
-                            className="flex-1 py-1.5 flex items-center justify-center gap-1 text-xs font-mono border border-[var(--cyber-border)] bg-[var(--cyber-surface)] text-[var(--cyber-text-secondary)] hover:text-[var(--cyber-text)] transition-all uppercase"
-                          >
-                            <X size={12} /> ยกเลิก (CANCEL)
-                          </button>
-                        </div>
-                      )}
-
-                      {msg.savedStatus === 'saved' && (
-                        <div className="space-y-3 pt-2">
-                          <div className="flex items-center gap-2 text-[var(--cyber-green)] text-[10px] font-mono uppercase tracking-[1px]">
-                            <Check size={14} />
-                            <span>บันทึกและอัปเดตยอดคงเหลือแล้ว</span>
+                  {/* ── Action preview card (wallet / budget / debt) ── */}
+                  {msg.actionData && msg.savedStatus === 'pending' && (
+                    <div className="mt-3 bg-white/5 border border-white/10 p-3 rounded-xl">
+                      {msg.intent === 'add_wallet' && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">💳</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.name}</p>
+                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">กระเป๋าเงินใหม่</p>
                           </div>
-                          <button
-                            onClick={() => router.push('/')}
-                            className="
-                              w-full py-3 bg-[var(--cyber-green)] text-[var(--cyber-bg)]
-                              font-bold text-[10px] tracking-[4px] uppercase
-                              shadow-[0_0_20px_var(--cyber-green-glow)]
-                              hover:shadow-[0_0_30px_var(--cyber-green-glow-sm)]
-                              transition-all flex items-center justify-center gap-2
-                            "
-                          >
-                            <Sparkles size={14} /> ดู DASHBOARD // VIEW DASHBOARD
-                          </button>
+                          <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
+                            {formatCurrency(msg.actionData.balance)}
+                          </p>
                         </div>
                       )}
+                      {msg.intent === 'set_budget' && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">📊</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.category}</p>
+                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">งบประมาณรายเดือน</p>
+                          </div>
+                          <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
+                            {formatCurrency(msg.actionData.amount)}
+                          </p>
+                        </div>
+                      )}
+                      {msg.intent === 'add_debt' && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">📋</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.name}</p>
+                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">
+                              {msg.actionData.interestRate > 0 ? `ดอกเบี้ย ${msg.actionData.interestRate}%` : 'ไม่มีดอกเบี้ย'}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold font-mono text-[var(--cyber-red)] shrink-0">
+                            {formatCurrency(msg.actionData.amount)}
+                          </p>
+                        </div>
+                      )}
+                      {msg.intent === 'add_to_goal' && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">🎯</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.goal_name}</p>
+                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">ออมเงินเข้าเป้าหมาย</p>
+                          </div>
+                          <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
+                            +{formatCurrency(msg.actionData.amount)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                      {msg.savedStatus === 'cancelled' && (
-                        <div className="flex items-center gap-2 pt-2 text-[var(--cyber-text-muted)] text-[10px] font-mono uppercase tracking-[1px]">
-                          <X size={14} /> <span>ยกเลิกแล้ว (CANCELLED)</span>
-                        </div>
-                      )}
+                  {/* ── Success card after save ── */}
+                  {msg.savedStatus === 'saved' && msg.actionData && (
+                    <div className="mt-3 bg-[var(--cyber-green)]/5 border border-[var(--cyber-green)]/20 p-3 rounded-xl">
+                      <div className="flex items-center gap-2 text-[var(--cyber-green)] text-sm font-medium">
+                        <Check size={14} />
+                        <span>
+                          {msg.intent === 'add_wallet' && `เพิ่มกระเป๋า "${msg.actionData.name}" ${formatCurrency(msg.actionData.balance)} แล้ว`}
+                          {msg.intent === 'set_budget' && `ตั้งงบ "${msg.actionData.category}" ${formatCurrency(msg.actionData.amount)} แล้ว`}
+                          {msg.intent === 'add_debt' && `บันทึกหนี้ "${msg.actionData.name}" ${formatCurrency(msg.actionData.amount)} แล้ว`}
+                          {msg.intent === 'add_to_goal' && `ออมเงิน ${formatCurrency(msg.actionData.amount)} เข้า "${msg.actionData.goal_name}" แล้ว`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Action buttons (shared for all pending intents) ── */}
+                  {msg.savedStatus === 'pending' && (
+                    <div className="flex gap-2 pt-3">
+                      <button
+                        onClick={() => handleCancel(msg.id)}
+                        className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg bg-transparent hover:bg-white/5 text-[var(--cyber-text-muted)] transition-all"
+                      >
+                        <X size={14} /> Cancel
+                      </button>
+                      <button
+                        onClick={() => handleSave(msg.id)}
+                        className="flex-[2] py-2 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/40 text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/20 hover:border-[var(--cyber-green)] transition-all"
+                      >
+                        <Check size={14} /> {getConfirmLabel(msg.intent)}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── Saved status for transactions ── */}
+                  {msg.savedStatus === 'saved' && msg.intent === 'record_transaction' && (
+                    <div className="space-y-3 pt-3">
+                      <div className="flex items-center gap-1.5 text-[var(--cyber-green)] text-xs font-medium">
+                        <Check size={14} />
+                        <span>บันทึกและอัปเดตยอดคงเหลือแล้ว</span>
+                      </div>
+                      <button
+                        onClick={() => router.push('/')}
+                        className="w-full py-2 px-4 bg-[var(--cyber-surface)] border border-[var(--cyber-green)]/30 text-[var(--cyber-text)] hover:text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/10 hover:border-[var(--cyber-green)] rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles size={13} /> View Dashboard
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ── Saved status for wallet/budget/debt ── */}
+                  {msg.savedStatus === 'saved' && msg.intent !== 'record_transaction' && msg.actionData && (
+                    <div className="pt-3">
+                      <button
+                        onClick={() => router.push('/')}
+                        className="w-full py-2 px-4 bg-[var(--cyber-surface)] border border-[var(--cyber-green)]/30 text-[var(--cyber-text)] hover:text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/10 hover:border-[var(--cyber-green)] rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles size={13} /> View Dashboard
+                      </button>
+                    </div>
+                  )}
+
+                  {msg.savedStatus === 'cancelled' && (
+                    <div className="flex items-center gap-1.5 pt-3 text-[var(--cyber-text-muted)] text-xs font-medium">
+                      <X size={14} /> <span>ยกเลิกแล้ว (Cancelled)</span>
                     </div>
                   )}
                 </div>
@@ -330,7 +694,7 @@ export default function AiChatPage() {
             </div>
             <div className="bg-[var(--cyber-surface)] border border-[var(--cyber-border)] px-4 py-3 flex items-center gap-2">
               <Loader2 size={14} className="text-[var(--cyber-green)] animate-spin" />
-              <span className="cyber-label status-blip">คิดหน้าดู...</span>
+              <span className="cyber-label status-blip">กำลังวิเคราะห์...</span>
             </div>
           </motion.div>
         )}
@@ -341,7 +705,7 @@ export default function AiChatPage() {
       {messages.length <= 1 && (
         <div className="shrink-0 py-3">
           <p className="cyber-label mb-2 flex items-center gap-1.5">
-            <Sparkles size={10} /> กดปุ่มเพื่อตัวอย่างการพูดคุย
+            <Sparkles size={10} /> ลองพิมพ์หรือกดเลือก
           </p>
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map((s) => (
@@ -366,7 +730,7 @@ export default function AiChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="บอกสิ่งที่จ่ายไป..."
+            placeholder="พิมพ์อะไรก็ได้... บันทึกรายจ่าย เพิ่มกระเป๋า ตั้งงบ หรือถามทั่วไป"
             className="
               flex-1 border border-[var(--cyber-border)] bg-[var(--cyber-surface-alt)]
               px-4 py-3 text-sm text-[var(--cyber-text)]
