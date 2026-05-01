@@ -1,82 +1,82 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { formatCurrency } from '@/lib/utils';
-import type { Wallet } from '@/types';
+import { motion }             from 'framer-motion';
+import { formatCurrency }     from '@/lib/utils';
+import { getWalletVisuals }   from '@/lib/banks';
+import WalletIconDisplay      from '@/components/ui/WalletIconDisplay';
+import type { Wallet }        from '@/types';
 
 interface WalletCarouselProps {
   wallets: Wallet[];
 }
 
-const walletGradients: Record<string, string> = {
-  bank: 'from-[#1F2328] to-[#252A30]',
-  ewallet: 'from-[#1A2332] to-[#1F2328]',
-  cash: 'from-[#1F2820] to-[#1F2328]',
-  credit: 'from-[#281F23] to-[#1F2328]',
-};
-
-const walletBorders: Record<string, string> = {
-  bank: 'border-[#448AFF]/20',
-  ewallet: 'border-[#00E5FF]/20',
-  cash: 'border-[#39FF14]/20',
-  credit: 'border-[#FF9100]/20',
-};
-
-const walletAccents: Record<string, string> = {
-  bank: 'text-[#448AFF]',
-  ewallet: 'text-[#00E5FF]',
-  cash: 'text-[#39FF14]',
-  credit: 'text-[#FF9100]',
-};
-
 export default function WalletCarousel({ wallets }: WalletCarouselProps) {
+  if (wallets.length === 0) {
+    return (
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="cyber-label">Wallets</span>
+          <div className="flex-1 h-px bg-(--cyber-border)" />
+        </div>
+        <div className="rounded-2xl border border-(--cyber-border) bg-(--cyber-surface) p-8 flex flex-col items-center justify-center text-center">
+          <span className="text-3xl mb-3">💳</span>
+          <p className="text-sm text-(--cyber-text-secondary)">No wallets yet</p>
+          <p className="text-xs text-(--cyber-text-muted) mt-1">Add your first wallet to start tracking</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      {/* Section label */}
+    <div className="w-full max-w-full overflow-hidden">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] tracking-[3px] text-[#6B7280] font-mono uppercase">
-          [ WALLETS ]
-        </span>
-        <div className="flex-1 h-px bg-[#2A2F38]" />
+        <span className="cyber-label">Wallets</span>
+        <div className="flex-1 h-px bg-(--cyber-border)" />
       </div>
 
-      {/* Horizontal scroll container */}
-      <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2 -mx-1 px-1">
-        {wallets.map((wallet, i) => (
-          <motion.div
-            key={wallet.id}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.1, duration: 0.4 }}
-            className={`
-              shrink-0 w-[180px] lg:w-[200px] rounded-[12px] border p-4
-              bg-linear-to-br cursor-pointer
-              transition-all duration-200 hover:scale-[1.02]
-              ${walletGradients[wallet.type] ?? 'from-[#1F2328] to-[#252A30]'}
-              ${walletBorders[wallet.type] ?? 'border-[#2A2F38]'}
-            `}
-          >
-            {/* Icon + Name */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">{wallet.icon ?? '💰'}</span>
-              <span className="text-xs tracking-[1px] text-[#6B7280] uppercase truncate">
-                {wallet.name}
-              </span>
-            </div>
+      <div className="flex flex-row w-full overflow-x-auto flex-nowrap gap-4 pb-4 snap-x snap-mandatory subtle-scrollbar">
+        {wallets.map((wallet, i) => {
+          const visuals  = getWalletVisuals(wallet.name, wallet.type);
+          const isCredit = wallet.type === 'credit';
+          const balColor = wallet.balance >= 0 && !isCredit ? visuals.color : '#F87171';
 
-            {/* Balance */}
-            <p className={`text-lg font-bold font-mono ${walletAccents[wallet.type] ?? 'text-[#E8EAF0]'}`}>
-              {formatCurrency(wallet.balance)}
-            </p>
+          return (
+            <motion.div
+              key={wallet.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.08, duration: 0.35 }}
+              className="flex-none shrink-0 min-w-[260px] w-[260px] snap-start rounded-2xl border border-(--cyber-border) bg-(--cyber-surface) p-4 transition-all duration-200 hover:border-(--border-light) hover:shadow-[0_4px_16px_rgba(0,0,0,0.24)] cursor-pointer overflow-hidden relative"
+            >
+              {/* Brand accent strip */}
+              <div
+                className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl"
+                style={{ backgroundColor: visuals.color }}
+              />
 
-            {/* Type badge */}
-            <div className="mt-2">
-              <span className="text-[9px] font-mono tracking-[2px] text-[#374151] uppercase">
-                {wallet.type}
-              </span>
-            </div>
-          </motion.div>
-        ))}
+              {/* Icon + Name */}
+              <div className="flex items-center gap-2.5 mb-3 mt-1">
+                <WalletIconDisplay visuals={visuals} size={36} />
+                <span className="text-xs text-(--cyber-text-secondary) truncate font-medium leading-tight">
+                  {wallet.name}
+                </span>
+              </div>
+
+              {/* Balance */}
+              <p className="text-lg font-bold font-mono" style={{ color: balColor }}>
+                {formatCurrency(wallet.balance)}
+              </p>
+
+              {/* Type badge */}
+              <div className="mt-2 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: visuals.color }} />
+                <span className="text-[10px] text-(--cyber-text-muted) capitalize">
+                  {visuals.bankLabel ?? wallet.type}
+                </span>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

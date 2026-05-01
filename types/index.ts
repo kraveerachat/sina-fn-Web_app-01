@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════
 
 export type PersonaType = 'student' | 'employee' | 'freelance' | 'business' | 'family';
-export type WalletType = 'bank' | 'ewallet' | 'cash' | 'credit';
+export type WalletType = 'bank' | 'ewallet' | 'cash' | 'credit' | 'savings';
 export type TransactionType = 'income' | 'expense' | 'transfer';
 export type CategoryType = 'income' | 'expense' | 'transfer';
 export type RolloverPolicy = 'reset' | 'rollover' | 'save';
@@ -73,6 +73,21 @@ export interface Budget {
   is_deleted: boolean;
   // Joined
   category?: Category;
+}
+
+export interface Goal {
+  id: string;
+  user_id: string;
+  name: string;
+  target_amount: number;
+  target_date: string | null;
+  image_url: string | null;
+  linked_wallet_id: string | null;
+  created_at: string;
+  updated_at: string;
+  is_deleted: boolean;
+  // Joined
+  wallet?: Wallet;
 }
 
 export interface MonthlyBill {
@@ -147,6 +162,7 @@ export interface AppTransaction {
   transaction_date: string;
   walletId: string;
   walletName: string;
+  walletType: string;
 }
 
 /**

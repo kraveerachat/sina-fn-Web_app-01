@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Plus, Trash2, Wallet as WalletIcon, CreditCard, Banknote, Smartphone,
-  AlertCircle, Save, X, ArrowUpRight, ArrowDownRight, Scale, Loader2,
+  Plus, Trash2, AlertCircle, Save, X, ArrowUpRight, ArrowDownRight, Scale, Loader2,
   Pencil, Scissors, Check,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { Wallet } from '@/types';
 import { supabase } from '@/lib/supabase/client';
+import { createWalletWithOpeningBalance, deleteWallet, formatSupabaseError } from '@/lib/supabase/queries';
+import { THAI_BANKS, getWalletVisuals } from '@/lib/banks';
+import WalletIconDisplay from '@/components/ui/WalletIconDisplay';
 import { useAuth }   from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
 
@@ -26,15 +28,8 @@ interface SplitState {
   typeB: Wallet['type'];
 }
 
-const typeIcons: Record<Wallet['type'], React.ReactNode> = {
-  bank:    <WalletIcon size={20} />,
-  cash:    <Banknote size={20} />,
-  credit:  <CreditCard size={20} />,
-  ewallet: <Smartphone size={20} />,
-};
-
 const typeIcon = (t: Wallet['type']) => ({
-  bank: '🏦', cash: '💵', credit: '💳', ewallet: '📱',
+  bank: '🏦', cash: '💵', credit: '💳', ewallet: '📱', savings: '🏦',
 })[t] ?? '💰';
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -60,29 +55,38 @@ export default function WalletsPage() {
   // Split wallet
   const [split, setSplit] = useState<SplitState | null>(null);
 
-  // ── Add wallet — TODO Phase 3: move to addWallet() in queries.ts ──
+  // Bank sub-selection (only when type === 'bank')
+  const [selectedBank, setSelectedBank] = useState('');
+
+  // ── Add wallet — uses createWalletWithOpeningBalance for data integrity ──
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName || isNaN(Number(newBalance)) || !userId) return;
+    const balance = Number(newBalance);
+    if (!newName || isNaN(balance) || !userId) return;
 
-    const { error } = await supabase.from('wallets').insert({
-      user_id: userId, name: newName, type: newType,
-      balance: Number(newBalance), icon: typeIcon(newType),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_deleted: false,
-    });
+    // When a specific Thai bank is chosen, use that bank's canonical name
+    const walletName = (newType === 'bank' && selectedBank) ? selectedBank : newName;
 
-    if (error) { console.error('Add wallet error:', error); return; }
-    setIsAdding(false); setNewName(''); setNewBalance(''); setNewType('bank');
-    await refetchWallets(); // refresh via hook instead of local setState
+    try {
+      await createWalletWithOpeningBalance(
+        { name: walletName, type: newType, balance, icon: typeIcon(newType), user_id: userId },
+        userId
+      );
+      setIsAdding(false); setNewName(''); setNewBalance(''); setNewType('bank'); setSelectedBank('');
+      await refetchWallets();
+    } catch (err) {
+      console.error('[WalletsPage] add wallet error:', (err as Error).message ?? formatSupabaseError(err));
+    }
   };
 
-  // ── Delete wallet — TODO Phase 3: move to deleteWallet() in queries.ts ──
+  // ── Delete wallet ──────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('wallets').update({ is_deleted: true }).eq('id', id);
-    if (error) { console.error('Delete wallet error:', error); return; }
-    await refetchWallets();
+    try {
+      await deleteWallet(id);
+      await refetchWallets();
+    } catch (err) {
+      console.error('[WalletsPage] delete wallet error:', (err as Error).message ?? formatSupabaseError(err));
+    }
   };
 
   // ── Open inline edit ──────────────────────────────────────────────────────
@@ -130,7 +134,7 @@ export default function WalletsPage() {
     const aBalance = Number(balanceA);
     const bBalance = Number(balanceB);
 
-    // Update original wallet with new values
+    // Update original wallet (A) with new values
     const { error: errA } = await supabase.from('wallets').update({
       name: nameA,
       balance: aBalance,
@@ -139,19 +143,17 @@ export default function WalletsPage() {
       updated_at: new Date().toISOString(),
     }).eq('id', walletId);
 
-    // Insert new split wallet (data returned via refetchWallets — not tracked locally)
-    const { error: errB } = await supabase.from('wallets').insert({
-      user_id: userId,
-      name: nameB,
-      balance: bBalance,
-      type: typeB,
-      icon: typeIcon(typeB),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_deleted: false,
-    }).select().single();
+    if (errA) { console.error('[WalletsPage] split update A error:', errA); return; }
 
-    if (errA || errB) { console.error('Split error:', errA, errB); return; }
+    // Create wallet B with opening balance transaction for data integrity
+    try {
+      await createWalletWithOpeningBalance(
+        { name: nameB, type: typeB, balance: bBalance, icon: typeIcon(typeB), user_id: userId },
+        userId
+      );
+    } catch (err) {
+      console.error('[WalletsPage] split create B error:', err); return;
+    }
 
     setSplit(null);
     await refetchWallets();
@@ -224,13 +226,22 @@ export default function WalletsPage() {
               <h2 className="text-[#E8EAF0] text-sm font-mono uppercase border-b border-[#2A2F38] pb-2">เพิ่มบัญชีใหม่</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[#6B7280] font-mono uppercase">ชื่อบัญชี</label>
-                  <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="เช่น KBank, เงินสด..."
-                    className="rounded-[6px] border border-[#2A2F38] bg-[#252A30] px-3 py-2 text-sm text-[#E8EAF0] outline-none focus:border-[#E040FB] transition-all" required />
+                  <label className="text-[10px] text-[#6B7280] font-mono uppercase">
+                    ชื่อเรียกบัญชี
+                    <span className="normal-case text-[#4B5563] ml-1">(เช่น KBank เงินเก็บ)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder={selectedBank ? `${selectedBank} (ปรับชื่อได้)` : 'เช่น KBank เงินเก็บ, เงินสดในกระเป๋า'}
+                    className="rounded-[6px] border border-[#2A2F38] bg-[#252A30] px-3 py-2 text-sm text-[#E8EAF0] outline-none focus:border-[#E040FB] transition-all"
+                    required
+                  />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-[#6B7280] font-mono uppercase">ประเภท</label>
-                  <select value={newType} onChange={(e) => setNewType(e.target.value as Wallet['type'])}
+                  <select value={newType} onChange={(e) => { setNewType(e.target.value as Wallet['type']); setSelectedBank(''); }}
                     className="rounded-[6px] border border-[#2A2F38] bg-[#252A30] px-3 py-2 text-sm text-[#E8EAF0] outline-none focus:border-[#E040FB]">
                     <option value="bank">🏦 ธนาคาร</option>
                     <option value="cash">💵 เงินสด</option>
@@ -238,6 +249,26 @@ export default function WalletsPage() {
                     <option value="ewallet">📱 E-Wallet</option>
                   </select>
                 </div>
+                {/* Bank sub-dropdown — only when type === bank */}
+                {newType === 'bank' && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] text-[#6B7280] font-mono uppercase">เลือกธนาคาร</label>
+                    <select
+                      value={selectedBank}
+                      onChange={(e) => {
+                        setSelectedBank(e.target.value);
+                        // Auto-fill name field with bank name
+                        if (e.target.value) setNewName(e.target.value);
+                      }}
+                      className="rounded-[6px] border border-[#2A2F38] bg-[#252A30] px-3 py-2 text-sm text-[#E8EAF0] outline-none focus:border-[#E040FB]"
+                    >
+                      <option value="">— ระบุชื่อเอง —</option>
+                      {THAI_BANKS.map((b) => (
+                        <option key={b.name} value={b.name}>{b.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-[#6B7280] font-mono uppercase">ยอดเงินเริ่มต้น (฿)</label>
                   <input type="number" value={newBalance} onChange={(e) => setNewBalance(e.target.value)} placeholder="0.00"
@@ -330,12 +361,16 @@ export default function WalletsPage() {
               {/* Header row */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-[8px] flex items-center justify-center bg-[#1F2328] border border-[#2A2F38] ${wallet.balance >= 0 ? 'text-[#39FF14]' : 'text-[#FF3B3B]'} transition-transform group-hover:scale-105`}>
-                    {typeIcons[wallet.type]}
-                  </div>
+                  <WalletIconDisplay
+                    visuals={getWalletVisuals(wallet.name, wallet.type)}
+                    size={48}
+                    className="transition-transform group-hover:scale-105"
+                  />
                   <div>
-                    <h3 className="text-[#E8EAF0] text-sm font-bold">{wallet.icon} {wallet.name}</h3>
-                    <p className="text-[10px] font-mono text-[#6B7280] uppercase tracking-widest mt-0.5">{wallet.type}</p>
+                    <h3 className="text-[#E8EAF0] text-sm font-bold">{wallet.name}</h3>
+                    <p className="text-[10px] font-mono text-[#6B7280] uppercase tracking-widest mt-0.5">
+                      {getWalletVisuals(wallet.name, wallet.type).bankLabel ?? wallet.type}
+                    </p>
                   </div>
                 </div>
                 {/* Action buttons — only show on hover */}

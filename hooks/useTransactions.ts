@@ -87,6 +87,10 @@ export function useTransactions(
 
   useEffect(() => {
     fetchTransactions();
+
+    const handleMutate = () => fetchTransactions();
+    window.addEventListener('app_mutate', handleMutate);
+    return () => window.removeEventListener('app_mutate', handleMutate);
   }, [fetchTransactions]);
 
   return {

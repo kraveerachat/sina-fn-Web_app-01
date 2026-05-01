@@ -64,6 +64,10 @@ export function useBudgets(
 
   useEffect(() => {
     fetchBudgets();
+
+    const handleMutate = () => fetchBudgets();
+    window.addEventListener('app_mutate', handleMutate);
+    return () => window.removeEventListener('app_mutate', handleMutate);
   }, [fetchBudgets]);
 
   return {

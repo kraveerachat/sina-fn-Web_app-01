@@ -1,117 +1,147 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// QuickAddModal — Fast Transaction Entry
-// Uses hooks exclusively — no direct Supabase calls in this component.
+// QuickAddModal — Fast Transaction Entry (Minimal / Modern / Clean)
 // ═══════════════════════════════════════════════════════════════════
 
-import { motion, AnimatePresence }  from 'framer-motion';
-import { X, Plus, ArrowUp, ArrowDown, Mic, Check, Delete } from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import {
+  X, Plus, ArrowUp, ArrowDown, Check, Delete, Mic,
+  Utensils, Coffee, Car, ShoppingBag, Clapperboard,
+  Heart, FileText, Package, GraduationCap,
+  Briefcase, TrendingUp, Gift, Landmark, Coins,
+  type LucideIcon,
+} from 'lucide-react';
 import CyberButton from '@/components/ui/CyberButton';
-import { useState }                      from 'react';
-import { formatCurrency }           from '@/lib/utils';
-import { useAuth }                  from '@/hooks/useAuth';
-import { useWallets }               from '@/hooks/useWallets';
-import { useToast }                 from '@/hooks/useToast';
-import { addTransaction }                from '@/lib/supabase/queries';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { formatCurrency } from '@/lib/utils';
+import { useAuth }    from '@/hooks/useAuth';
+import { useWallets } from '@/hooks/useWallets';
+import { useToast }   from '@/hooks/useToast';
+import { addTransaction } from '@/lib/supabase/queries';
+import { dispatchAppMutate } from '@/lib/events';
 
+// ── Props ──────────────────────────────────────────────────────────
 interface QuickAddModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  /** Called after a successful save so the parent can refresh its data */
-  onSave?: () => void;
+  isOpen:   boolean;
+  onClose:  () => void;
+  onSave?:  () => void;
 }
 
-const CATEGORIES = [
-  { emoji: '🍚', name: 'อาหาร' },
-  { emoji: '☕', name: 'เครื่องดื่ม' },
-  { emoji: '🚗', name: 'เดินทาง' },
-  { emoji: '🛍️', name: 'ช้อปปิ้ง' },
-  { emoji: '🎬', name: 'บันเทิง' },
-  { emoji: '💊', name: 'สุขภาพ' },
-  { emoji: '📄', name: 'บิล' },
-  { emoji: '💰', name: 'รายได้' },
-  { emoji: '📦', name: 'อื่นๆ' },
+// ── Category definitions ───────────────────────────────────────────
+interface CategoryDef {
+  icon: LucideIcon;
+  name: string;
+}
+
+const EXPENSE_CATEGORIES: CategoryDef[] = [
+  { icon: Utensils,      name: 'อาหาร' },
+  { icon: Coffee,        name: 'เครื่องดื่ม' },
+  { icon: Car,           name: 'เดินทาง' },
+  { icon: ShoppingBag,   name: 'ช้อปปิ้ง' },
+  { icon: Clapperboard,  name: 'บันเทิง' },
+  { icon: Heart,         name: 'สุขภาพ' },
+  { icon: GraduationCap, name: 'การศึกษา' },
+  { icon: FileText,      name: 'บิล' },
+  { icon: Package,       name: 'อื่นๆ' },
 ];
 
-const NUMPAD_KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '.', '0', 'DEL'];
+const INCOME_CATEGORIES: CategoryDef[] = [
+  { icon: Briefcase,  name: 'เงินเดือน' },
+  { icon: TrendingUp, name: 'ลงทุน' },
+  { icon: Coins,      name: 'รายได้เสริม' },
+  { icon: Gift,       name: 'โบนัส' },
+  { icon: Landmark,   name: 'ดอกเบี้ย' },
+  { icon: Package,    name: 'อื่นๆ' },
+];
 
+const NUMPAD_KEYS = ['7','8','9','4','5','6','1','2','3','.','0','DEL'] as const;
+
+// ── Framer-motion variants (explicitly typed to fix TS2322) ────────
+const gridVariants: Variants = {
+  hidden:  { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0,  transition: { duration: 0.22, ease: 'easeOut' } },
+  exit:    { opacity: 0, y: -6, transition: { duration: 0.14 } },
+};
+
+// ═══════════════════════════════════════════════════════════════════
 export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModalProps) {
-  // ── Local UI state ──
-  const [amount,            setAmount]            = useState('');
-  const [txType,            setTxType]            = useState<'expense' | 'income'>('expense');
-  const [selectedCategory,  setSelectedCategory]  = useState<string | null>(null);
-  const [selectedWalletId,  setSelectedWalletId]  = useState('');
-  const [note,              setNote]              = useState('');
-  const [saving,            setSaving]            = useState(false);
-  const [saved,             setSaved]             = useState(false);
 
-  // ── Data hooks — no direct Supabase calls ──
-  const { user }                         = useAuth();
+  // ── State ──
+  const [amount,           setAmount]           = useState('');
+  const [txType,           setTxType]           = useState<'expense' | 'income'>('expense');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState('');
+  const [note,             setNote]             = useState('');
+  const [saving,           setSaving]           = useState(false);
+  const [saved,            setSaved]            = useState(false);
+
+  const noteRef = useRef<HTMLInputElement>(null);
+
+  // ── Hooks ──
+  const { user }                             = useAuth();
   const { wallets, refetch: refetchWallets } = useWallets(user?.id);
-  const { toast }                        = useToast();
+  const { toast }                            = useToast();
 
-  // Auto-select first wallet — derived, not set in an effect (avoids cascading renders)
-  const defaultWalletId = wallets.length > 0 ? wallets[0].id : '';
+  const defaultWalletId   = wallets[0]?.id ?? '';
   const effectiveWalletId = selectedWalletId || defaultWalletId;
+  const categories        = txType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
-  // ── Numpad handler ──
-  const handleNumpad = (val: string) => {
-    if (val === 'DEL') {
-      setAmount((prev) => prev.slice(0, -1));
-    } else if (val === '.') {
-      if (amount.includes('.')) return;
-      setAmount((prev) => (prev === '' ? '0.' : prev + '.'));
-    } else {
-      const parts = amount.split('.');
-      if (parts[1] && parts[1].length >= 2) return;
-      if (!amount.includes('.') && parts[0].length >= 10) return;
-      setAmount((prev) => prev + val);
-    }
+  // ── Tab switch — reset category inline (no useEffect to avoid cascading setState) ──
+  const handleSetTxType = (type: 'expense' | 'income') => {
+    setTxType(type);
+    setSelectedCategory(null);
   };
 
-  // ── Submit handler — all DB calls go through queries.ts ──
-  const handleSubmit = async () => {
-    if (!amount || !selectedCategory || parseFloat(amount) <= 0) return;
-    if (!user) {
-      toast('กรุณาเข้าสู่ระบบก่อน', 'error');
+  // ── Numpad ──
+  const handleNumpad = useCallback((val: string) => {
+    if (val === 'DEL') { setAmount(prev => prev.slice(0, -1)); return; }
+    if (val === '.') {
+      setAmount(prev => prev.includes('.') ? prev : (prev === '' ? '0.' : prev + '.'));
       return;
     }
+    setAmount(prev => {
+      const parts = prev.split('.');
+      if (parts[1] && parts[1].length >= 2) return prev;
+      if (!prev.includes('.') && parts[0].length >= 10) return prev;
+      return prev + val;
+    });
+  }, []);
 
-    const walletId = effectiveWalletId;
-    if (!walletId) {
-      toast('กรุณาเพิ่มกระเป๋าเงินก่อน', 'warning');
-      return;
-    }
+  // ── Category select — auto-focus note ──
+  const handleCategorySelect = useCallback((name: string) => {
+    setSelectedCategory(name);
+    setTimeout(() => noteRef.current?.focus(), 100);
+  }, []);
+
+  // ── Submit ──
+  const handleSubmit = useCallback(async () => {
+    const parsed = parseFloat(amount);
+    if (!amount || !selectedCategory || parsed <= 0) return;
+    if (!user) { toast('กรุณาเข้าสู่ระบบก่อน', 'error'); return; }
+    if (!effectiveWalletId) { toast('กรุณาเพิ่มกระเป๋าเงินก่อน', 'warning'); return; }
 
     try {
       setSaving(true);
-
-      // Save transaction via queries layer
-      // (getOrCreateCategory is called internally by addTransaction)
       await addTransaction(
         {
           note:             note || selectedCategory,
           categoryName:     selectedCategory,
-          amount:           parseFloat(amount),
+          amount:           parsed,
           type:             txType,
           transaction_date: new Date().toISOString(),
-          walletId:         walletId,
-          walletName:       wallets.find(w => w.id === walletId)?.name ?? 'กระเป๋าหลัก',
-          emoji:            CATEGORIES.find(c => c.name === selectedCategory)?.emoji ?? '💸',
+          walletId:         effectiveWalletId,
+          walletName:       wallets.find(w => w.id === effectiveWalletId)?.name ?? 'กระเป๋าหลัก',
+          walletType:       wallets.find(w => w.id === effectiveWalletId)?.type ?? 'cash',
+          emoji:            '💸',
         },
         user.id
       );
 
-      // Show success overlay
       setSaved(true);
-      toast(
-        `บันทึกแล้ว — ${txType === 'expense' ? '-' : '+'}${formatCurrency(parseFloat(amount))}`,
-        'success'
-      );
-
-      // Refresh wallet data then close
+      toast(`บันทึกแล้ว — ${txType === 'expense' ? '-' : '+'}${formatCurrency(parsed)}`, 'success');
       await refetchWallets();
+      dispatchAppMutate();
 
       setTimeout(() => {
         setSaved(false);
@@ -123,27 +153,45 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
         onClose();
         onSave?.();
       }, 1200);
-
     } catch (err) {
       setSaving(false);
       console.error('[QuickAddModal] save failed:', err);
       toast('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
     }
-  };
+  }, [amount, selectedCategory, user, effectiveWalletId, note, txType, wallets, toast, refetchWallets, onClose, onSave]);
 
   // ── Close + reset ──
-  const handleClose = () => {
-    if (saving) return; // prevent closing mid-save
-    setAmount('');
-    setNote('');
-    setSelectedCategory(null);
-    setSelectedWalletId('');
-    setSaved(false);
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    setAmount(''); setNote(''); setSelectedCategory(null);
+    setSelectedWalletId(''); setSaved(false);
     onClose();
-  };
+  }, [saving, onClose]);
+
+  // ── Desktop keyboard support ──
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key >= '0' && e.key <= '9')               { e.preventDefault(); handleNumpad(e.key); }
+      else if (e.key === '.' || e.key === ',')         { e.preventDefault(); handleNumpad('.'); }
+      else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); handleNumpad('DEL'); }
+      else if (e.key === 'Enter')                      { e.preventDefault(); handleSubmit(); }
+      else if (e.key === 'Escape')                     { e.preventDefault(); handleClose(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, handleNumpad, handleSubmit, handleClose]);
 
   const displayAmount = amount || '0';
-  const isValid = !!amount && parseFloat(amount) > 0 && !!selectedCategory;
+  const isValid       = !!amount && parseFloat(amount) > 0 && !!selectedCategory;
+  const isExpense     = txType === 'expense';
+
+  // ── Accent classes (pure Tailwind, no CSS vars) ────────────────
+  const accentText   = isExpense ? 'text-rose-400'     : 'text-emerald-400';
+  const accentBorder = isExpense ? 'border-rose-400'   : 'border-emerald-400';
+  const accentBg     = isExpense ? 'bg-rose-400/10'    : 'bg-emerald-400/10';
 
   return (
     <AnimatePresence>
@@ -159,205 +207,211 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-[var(--cyber-bg)]/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={handleClose}
           />
 
-          {/* Modal panel */}
+          {/* Panel */}
           <motion.div
             initial={{ y: '100%', opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="
-              relative z-10 w-full max-w-md
-              h-[95vh] md:max-h-[90vh]
-              rounded-none border border-[var(--cyber-border)]
-              bg-[var(--cyber-surface)] overflow-hidden flex flex-col
-            "
+            className="relative z-10 w-full max-w-md max-h-[92vh] rounded-t-2xl lg:rounded-2xl border border-zinc-700 bg-zinc-900 overflow-hidden flex flex-col shadow-[0_-8px_40px_rgba(0,0,0,0.5)]"
           >
-            {/* HUD corner accents on modal */}
-            <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-[var(--cyber-green)] opacity-30 pointer-events-none z-10" />
-            <span className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[var(--cyber-green)] opacity-30 pointer-events-none z-10" />
 
-            {/* Success overlay */}
+            {/* ── Success overlay ── */}
             <AnimatePresence>
               {saved && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-20 bg-[var(--cyber-surface)]/95 flex flex-col items-center justify-center gap-3"
+                  className="absolute inset-0 z-20 bg-zinc-900/95 flex flex-col items-center justify-center gap-3"
                 >
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', damping: 12 }}
-                    className="w-16 h-16 rounded-full bg-[var(--cyber-green)]/10 border-2 border-[var(--cyber-green)] flex items-center justify-center"
+                    className="w-16 h-16 rounded-full bg-emerald-400/10 border-2 border-emerald-400 flex items-center justify-center"
                   >
-                    <Check size={28} className="text-[var(--cyber-green)]" />
+                    <Check size={28} className="text-emerald-400" />
                   </motion.div>
-                  <p className="cyber-label-green tracking-[4px]">SAVED!</p>
-                  <p className="text-xs text-[var(--cyber-text-secondary)] font-mono">
-                    {txType === 'expense' ? '-' : '+'}{formatCurrency(parseFloat(amount || '0'))}
+                  <p className="text-sm font-medium text-zinc-100 tracking-wide">บันทึกสำเร็จ!</p>
+                  <p className="text-xs text-zinc-400 font-mono">
+                    {isExpense ? '-' : '+'}{formatCurrency(parseFloat(amount || '0'))}
                   </p>
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* ── Header ── */}
-            <div className="flex items-center justify-between border-b border-[var(--cyber-border)] px-5 py-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-green)] hud-dot" />
-                <span className="cyber-label-green">QUICK ADD // บันทึกด่วน</span>
-              </div>
+            <div className="flex items-center justify-between px-5 py-4 shrink-0">
+              <h2 className="text-sm font-semibold text-zinc-100 tracking-wide">บันทึกรายการ</h2>
               <button
                 onClick={handleClose}
-                className="flex h-8 w-8 items-center justify-center text-[var(--cyber-text-secondary)] hover:bg-[var(--cyber-surface-alt)] hover:text-[var(--cyber-red)] transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
               >
                 <X size={16} />
               </button>
             </div>
 
-            {/* ── Scrollable content ── */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {/* Type toggle */}
-              <div className="flex gap-2">
-                {(['expense', 'income'] as const).map((type) => (
+            {/* ── Tabs ── */}
+            <div className="flex px-5 gap-1 shrink-0">
+              {(['expense', 'income'] as const).map((type) => {
+                const active = txType === type;
+                return (
                   <button
                     key={type}
-                    onClick={() => setTxType(type)}
-                    className={`
-                      flex-1 flex items-center justify-center gap-2
-                      rounded-none py-2.5 text-xs tracking-[2px] uppercase
-                      transition-all font-mono border
-                      ${txType === type && type === 'expense'
-                        ? 'bg-[var(--cyber-red-dim)] text-[var(--cyber-red)] border-[var(--cyber-red)]/30'
-                        : txType === type && type === 'income'
-                        ? 'bg-[var(--cyber-green-dim)] text-[var(--cyber-green)] border-[var(--cyber-green)]/30'
-                        : 'bg-[var(--cyber-surface-alt)] text-[var(--cyber-text-secondary)] border-[var(--cyber-border)] hover:bg-[var(--cyber-border)]'
-                      }
-                    `}
+                    onClick={() => handleSetTxType(type)}
+                    className={[
+                      'flex-1 flex items-center justify-center gap-2 py-2.5',
+                      'text-xs font-medium tracking-wide uppercase',
+                      'transition-all duration-200 relative rounded-t-lg',
+                      active ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300',
+                    ].join(' ')}
                   >
-                    {type === 'expense' ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
-                    {type.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+                    {type === 'expense'
+                      ? <ArrowDown size={14} className={active ? 'text-rose-400' : ''} />
+                      : <ArrowUp   size={14} className={active ? 'text-emerald-400' : ''} />
+                    }
+                    <span>{type === 'expense' ? 'รายจ่าย' : 'รายรับ'}</span>
 
-              {/* Amount display */}
-              <div className="text-center py-2">
-                <span className="cyber-label">AMOUNT (฿)</span>
+                    {active && (
+                      <motion.span
+                        layoutId="tab-underline"
+                        className={`absolute bottom-0 left-2 right-2 h-[2px] rounded-full ${type === 'expense' ? 'bg-rose-400' : 'bg-emerald-400'}`}
+                        transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-zinc-700 mx-5" />
+
+            {/* ── Scrollable body ── */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+              {/* Amount */}
+              <div className="text-center py-3">
+                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">จำนวนเงิน</p>
                 <motion.p
                   key={amount}
-                  initial={{ scale: 1.04 }}
+                  initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
-                  className={`text-4xl font-bold font-mono mt-1 tracking-tight ${
-                    txType === 'expense' ? 'text-[var(--cyber-red)]' : 'text-[var(--cyber-green)]'
-                  }`}
+                  transition={{ duration: 0.1 }}
+                  className={`text-4xl font-bold font-mono tracking-tight ${accentText}`}
                 >
                   ฿{displayAmount}
                 </motion.p>
               </div>
 
-              {/* Note input */}
+              {/* Note */}
               <div className="relative">
                 <input
+                  ref={noteRef}
                   type="text"
-                  placeholder="บันทึกรายการ..."
+                  placeholder="โน้ต (ไม่จำเป็น)"
                   value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="
-                    w-full rounded-none border border-[var(--cyber-border)]
-                    bg-[var(--cyber-surface-alt)] px-4 py-2.5
-                    text-sm text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)]
-                    outline-none focus:border-[var(--cyber-green)]/30 transition-colors font-mono
-                  "
+                  onChange={e => setNote(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500/40 transition-colors"
                 />
-                <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[var(--cyber-text-muted)] hover:text-[var(--cyber-green)] transition-colors">
+                <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors rounded-md">
                   <Mic size={14} />
                 </button>
               </div>
 
-              {/* Category grid */}
+              {/* Categories */}
               <div>
-                <p className="cyber-label mb-2">CATEGORY</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {CATEGORIES.map((cat) => (
-                    <motion.button
-                      key={cat.name}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={() => setSelectedCategory(cat.name)}
-                      className={`
-                        flex flex-col items-center gap-1 rounded-none p-2
-                        text-center transition-all border
-                        ${selectedCategory === cat.name
-                          ? 'bg-[var(--cyber-green)]/10 border-[var(--cyber-green)]/30'
-                          : 'bg-[var(--cyber-surface-alt)] border-transparent hover:border-[var(--cyber-border)]'
-                        }
-                      `}
-                    >
-                      <span className="text-lg">{cat.emoji}</span>
-                      <span className={`
-                        text-[7px] tracking-[0.5px] uppercase truncate w-full font-mono
-                        ${selectedCategory === cat.name ? 'text-[var(--cyber-green)]' : 'text-[var(--cyber-text-secondary)]'}
-                      `}>
-                        {cat.name}
-                      </span>
-                    </motion.button>
-                  ))}
-                </div>
+                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-3">หมวดหมู่</p>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={txType}
+                    variants={gridVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="grid grid-cols-3 gap-2.5"
+                  >
+                    {categories.map((cat) => {
+                      const Icon       = cat.icon;
+                      const isSelected = selectedCategory === cat.name;
+                      return (
+                        <motion.button
+                          key={cat.name}
+                          whileTap={{ scale: 0.93 }}
+                          onClick={() => handleCategorySelect(cat.name)}
+                          className={[
+                            'flex flex-col items-center gap-1.5 rounded-lg p-3',
+                            'text-center transition-all duration-200 border',
+                            isSelected
+                              ? `${accentBg} ${accentBorder} ${accentText}`
+                              : 'border-transparent bg-zinc-800/60 text-zinc-400 hover:bg-zinc-800 hover:border-zinc-700',
+                          ].join(' ')}
+                        >
+                          <Icon size={20} strokeWidth={1.6} />
+                          <span className="text-[10px] tracking-wide uppercase truncate w-full">
+                            {cat.name}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </motion.div>
+                </AnimatePresence>
               </div>
 
-              {/* Wallet selector */}
-              <div>
-                <p className="cyber-label mb-2">WALLET</p>
-                <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-                  {wallets.map((wallet) => (
-                    <button
-                      key={wallet.id}
-                      onClick={() => setSelectedWalletId(wallet.id)}
-                      className={`
-                        px-3 py-1.5 rounded-none text-xs font-mono whitespace-nowrap border
-                        transition-colors
-                        ${selectedWalletId === wallet.id
-                          ? 'bg-[var(--cyber-green)] text-[var(--cyber-bg)] border-[var(--cyber-green)]'
-                          : 'bg-[var(--cyber-surface-alt)] text-[var(--cyber-text-secondary)] border-[var(--cyber-border)] hover:border-[var(--cyber-green)]/30'
-                        }
-                      `}
-                    >
-                      {wallet.name}
-                    </button>
-                  ))}
+              {/* Wallet selector — only when multiple wallets */}
+              {wallets.length > 1 && (
+                <div>
+                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">กระเป๋าเงิน</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                    {wallets.map(wallet => (
+                      <button
+                        key={wallet.id}
+                        onClick={() => setSelectedWalletId(wallet.id)}
+                        className={[
+                          'px-3 py-1.5 rounded-lg text-xs whitespace-nowrap border transition-all duration-200',
+                          effectiveWalletId === wallet.id
+                            ? 'bg-violet-500 text-white border-violet-500 font-medium'
+                            : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-violet-500/30',
+                        ].join(' ')}
+                      >
+                        {wallet.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Numpad */}
-              <div className="grid grid-cols-3 gap-1.5">
-                {NUMPAD_KEYS.map((key) => (
+              <div className="grid grid-cols-3 gap-2">
+                {NUMPAD_KEYS.map(key => (
                   <motion.button
                     key={key}
-                    whileTap={{ scale: 0.93, backgroundColor: 'rgba(57, 255, 20, 0.08)' }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleNumpad(key)}
-                    className={`
-                      flex h-12 items-center justify-center
-                      rounded-none border text-lg font-mono transition-colors
-                      ${key === 'DEL'
-                        ? 'bg-[var(--cyber-red-dim)]/30 border-[var(--cyber-red)]/20 text-[var(--cyber-red)] hover:bg-[var(--cyber-red-dim)]/50'
-                        : 'bg-[var(--cyber-surface-alt)] border-[var(--cyber-border)] text-[var(--cyber-text)] hover:bg-[var(--cyber-border)]'
-                      }
-                    `}
+                    className={[
+                      'flex h-12 items-center justify-center rounded-lg border',
+                      'text-lg font-mono transition-all duration-150',
+                      key === 'DEL'
+                        ? 'bg-rose-400/10 border-rose-400/20 text-rose-400 hover:bg-rose-400/15'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-100 hover:bg-zinc-700',
+                    ].join(' ')}
                   >
                     {key === 'DEL' ? <Delete size={18} /> : key}
                   </motion.button>
                 ))}
               </div>
-            </div>
 
-            {/* ── Sticky submit button ── */}
-            <div className="flex-shrink-0 p-4 border-t border-[var(--cyber-border)] bg-[var(--cyber-surface)]">
+            </div>{/* end scrollable body */}
+
+            {/* ── Submit ── */}
+            <div className="flex-shrink-0 p-4 border-t border-zinc-700 bg-zinc-900">
               <CyberButton
-                variant={txType === 'expense' ? 'danger' : 'primary'}
+                variant={isExpense ? 'danger' : 'primary'}
                 fullWidth
                 glow
                 size="lg"
@@ -366,9 +420,10 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
                 disabled={!isValid}
                 loading={saving}
               >
-                {txType === 'expense' ? 'RECORD EXPENSE' : 'RECORD INCOME'}
+                {isExpense ? 'บันทึกรายจ่าย' : 'บันทึกรายรับ'}
               </CyberButton>
             </div>
+
           </motion.div>
         </motion.div>
       )}

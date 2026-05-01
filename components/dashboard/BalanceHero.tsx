@@ -18,55 +18,55 @@ export default function BalanceHero({
   const monthLabel = getCurrentMonthLabel();
 
   return (
-    <CyberCard glow cornerAccent className="p-6">
-      {/* HUD label */}
+    <CyberCard glow className="p-6">
+      {/* Month label */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-[#39FF14] hud-dot" />
-        <span className="text-[10px] text-[#39FF14] tracking-[3px] font-mono uppercase">
-          NET BALANCE // {monthLabel}
+        <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-green)] hud-dot" />
+        <span className="text-[11px] text-[var(--cyber-green)] tracking-[0.4px] font-medium uppercase">
+          Net Balance &middot; {monthLabel}
         </span>
       </div>
 
       {/* Balance amount */}
       <motion.p
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
-        className="text-4xl lg:text-5xl font-bold font-mono text-[#E8EAF0] tracking-tight mb-5 text-glow-green"
+        transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
+        className="text-4xl lg:text-5xl font-bold font-mono text-[var(--cyber-text)] tracking-tight mb-6"
       >
         {formatCurrency(totalBalance)}
       </motion.p>
 
-      {/* Stats row */}
+      {/* Income / Expense row */}
       <div className="flex gap-4">
         {/* Income */}
         <div className="flex-1 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[6px] bg-[#1A7A08] flex items-center justify-center">
-            <span className="text-[#39FF14] text-sm">▲</span>
+          <div className="w-9 h-9 rounded-xl bg-[var(--color-success-light)] flex items-center justify-center">
+            <span className="text-[var(--color-success)] text-sm font-medium">&#9650;</span>
           </div>
           <div>
-            <p className="text-[10px] tracking-[2px] text-[#6B7280] uppercase font-sans">
-              รายรับ
+            <p className="text-[11px] tracking-[0.3px] text-[var(--cyber-text-secondary)] uppercase">
+              Income
             </p>
-            <p className="text-sm font-bold font-mono text-[#39FF14]">
+            <p className="text-sm font-bold font-mono text-[var(--color-success)]">
               {formatCurrency(totalIncome, true)}
             </p>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="w-px bg-[#2A2F38]" />
+        <div className="w-px bg-[var(--cyber-border)]" />
 
         {/* Expense */}
         <div className="flex-1 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[6px] bg-[#7A1A1A] flex items-center justify-center">
-            <span className="text-[#FF3B3B] text-sm">▼</span>
+          <div className="w-9 h-9 rounded-xl bg-[var(--cyber-red-glow)] flex items-center justify-center">
+            <span className="text-[var(--cyber-red)] text-sm font-medium">&#9660;</span>
           </div>
           <div>
-            <p className="text-[10px] tracking-[2px] text-[#6B7280] uppercase font-sans">
-              รายจ่าย
+            <p className="text-[11px] tracking-[0.3px] text-[var(--cyber-text-secondary)] uppercase">
+              Expense
             </p>
-            <p className="text-sm font-bold font-mono text-[#FF3B3B]">
+            <p className="text-sm font-bold font-mono text-[var(--cyber-red)]">
               {formatCurrency(-totalExpense, true)}
             </p>
           </div>

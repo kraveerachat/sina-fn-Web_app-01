@@ -1,7 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { formatCurrency, formatTime } from '@/lib/utils';
+import Link from 'next/link';
+import { formatCurrency, formatTime } from '@/lib/utils';import { getWalletVisuals } from '@/lib/banks';
+import WalletIconDisplay from '@/components/ui/WalletIconDisplay';
 
 export interface TransactionDisplay {
   id: string;
@@ -11,6 +13,8 @@ export interface TransactionDisplay {
   amount: number;
   type: 'income' | 'expense' | 'transfer';
   transaction_date: string;
+  walletName: string;
+  walletType: string;
 }
 
 interface TransactionListProps {
@@ -23,57 +27,76 @@ export default function TransactionList({ transactions }: TransactionListProps) 
       {/* Section label */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] tracking-[3px] text-[#6B7280] font-mono uppercase">
-            [ RECENT TRANSACTIONS ]
-          </span>
-          <div className="flex-1 h-px bg-[#2A2F38]" />
+          <span className="cyber-label">Recent Transactions</span>
+          <div className="flex-1 h-px bg-(--cyber-border)" />
         </div>
-        <button className="text-[10px] tracking-[2px] text-[#39FF14] font-mono hover:text-[#39FF14]/70 transition-colors uppercase">
-          VIEW ALL →
-        </button>
+        <Link href="/history" className="text-[11px] font-medium text-(--cyber-green) hover:opacity-70 transition-opacity">
+          View All
+        </Link>
       </div>
 
-      <div className="space-y-1">
-        {transactions.map((tx, i) => {
-          const isIncome = tx.type === 'income';
-          return (
-            <motion.div
-              key={tx.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.35 }}
-              className="group flex items-center gap-3 rounded-[8px] p-3 hover:bg-[#252A30] transition-colors cursor-pointer border border-transparent hover:border-[#2A2F38]"
-            >
-              {/* Emoji icon */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-[#252A30] group-hover:bg-[#1F2328] transition-colors">
-                <span className="text-lg">{tx.emoji}</span>
-              </div>
+      {transactions.length === 0 ? (
+        <div className="rounded-2xl border border-[var(--cyber-border)] bg-[var(--cyber-surface)] p-8 flex flex-col items-center justify-center text-center">
+          <span className="text-3xl mb-3">📝</span>
+          <p className="text-sm text-[var(--cyber-text-secondary)]">No transactions yet</p>
+          <p className="text-xs text-[var(--cyber-text-muted)] mt-1">Tap Quick Add to record your first entry</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {transactions.map((tx, i) => {
+            const isIncome = tx.type === 'income';
+            const displayIcon = tx.emoji 
+              ? tx.emoji 
+              : (tx.categoryName === 'ออมเงิน' || tx.categoryName === 'Savings' || tx.note.includes('ออมเงิน'))
+                ? '🎯'
+                : '💸';
 
-              {/* Description + category */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-[#E8EAF0] truncate">{tx.note}</p>
-                <p className="text-[10px] tracking-[1px] text-[#374151] uppercase font-mono mt-0.5">
-                  {tx.categoryName}
-                </p>
-              </div>
+            return (
+              <motion.div
+                key={tx.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.3 }}
+                className="group flex items-center gap-3 rounded-xl p-3 hover:bg-(--cyber-surface-alt) transition-colors cursor-pointer"
+              >
+                {/* ── Bank Logo OR Category Emoji ── */}
+                {tx.walletType === 'bank' ? (
+                  <WalletIconDisplay
+                    visuals={getWalletVisuals(tx.walletName, tx.walletType)}
+                    size={40}
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-(--cyber-surface-alt) group-hover:bg-(--cyber-surface) transition-colors border border-transparent">
+                    <span className="text-lg">{displayIcon}</span>
+                  </div>
+                )}
 
-              {/* Time */}
-              <div className="shrink-0 text-right">
-                <p
-                  className={`text-sm font-bold font-mono ${
-                    isIncome ? 'text-[#39FF14]' : 'text-[#FF3B3B]'
-                  }`}
-                >
-                  {isIncome ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
-                </p>
-                <p className="text-[9px] font-mono text-[#374151] mt-0.5">
-                  {formatTime(tx.transaction_date)}
-                </p>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+                {/* Description + category */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-[var(--cyber-text)] truncate">{tx.note}</p>
+                  <p className="text-[10px] text-[var(--cyber-text-muted)] mt-0.5">
+                    {tx.categoryName}
+                  </p>
+                </div>
+
+                {/* Amount + time */}
+                <div className="shrink-0 text-right">
+                  <p
+                    className={`text-sm font-bold font-mono ${
+                      isIncome ? 'text-[var(--color-success)]' : 'text-[var(--cyber-red)]'
+                    }`}
+                  >
+                    {isIncome ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
+                  </p>
+                  <p className="text-[9px] font-mono text-[var(--cyber-text-muted)] mt-0.5">
+                    {formatTime(tx.transaction_date)}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

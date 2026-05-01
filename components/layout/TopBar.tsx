@@ -1,21 +1,21 @@
 'use client';
 
 import { getGreeting } from '@/lib/utils';
-import { Bell, Menu } from 'lucide-react';
+import { 
+  Bell, Menu, LayoutDashboard, History, Bot, 
+  Target, Wallet, TrendingUp, CreditCard, 
+  Receipt, Calculator, Settings, X 
+} from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard, History, Bot, PiggyBank, Wallet,
-  TrendingUp, CreditCard, Receipt, Calculator, Settings, X
-} from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'DASHBOARD', icon: LayoutDashboard },
   { href: '/history', label: 'HISTORY', icon: History },
   { href: '/ai-chat', label: 'AI CHAT', icon: Bot },
-  { href: '/budgets', label: 'BUDGETS', icon: PiggyBank },
+  { href: '/goals', label: 'GOALS', icon: Target },
   { href: '/wallets', label: 'WALLETS', icon: Wallet },
   { href: '/net-worth', label: 'NET WORTH', icon: TrendingUp },
   { href: '/debt-timeline', label: 'DEBTS', icon: CreditCard },

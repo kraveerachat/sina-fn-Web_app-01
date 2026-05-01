@@ -51,9 +51,13 @@ export function useWallets(userId: string | null | undefined): UseWalletsResult 
     }
   }, [userId]);
 
-  // Re-fetch whenever userId changes (login / logout)
+  // Re-fetch whenever userId changes (login / logout) or app mutates
   useEffect(() => {
     fetchWallets();
+
+    const handleMutate = () => fetchWallets();
+    window.addEventListener('app_mutate', handleMutate);
+    return () => window.removeEventListener('app_mutate', handleMutate);
   }, [fetchWallets]);
 
   return {

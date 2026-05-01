@@ -29,12 +29,22 @@
   // Path must be relative to the WORKSPACE ROOT (the folder VS Code opens).
   "tailwindCSS.experimental.configFile": "app/globals.css",
 
-  // Suppress IntelliSense false-positive warnings for:
-  //   • bg-linear-to-*  (new v4 gradient API)
-  //   • arbitrary value classes the extension flags as unknown
+  // ── Suppress ALL Tailwind IntelliSense yellow squiggles ───────────────
+  //
+  // These rules fire false-positives on:
+  //   • from-[var(--cyber-surface)], via-[var(--cyber-cyan)], etc.
+  //     → arbitrary values using project CSS variables
+  //   • bg-linear-to-br, bg-linear-to-r (Tailwind v4 gradient API)
+  //   • @theme, @utility, @layer blocks in globals.css
+  //   • Any class the extension doesn't recognise from its own manifest
+  //
   "tailwindCSS.lint.invalidTailwindDirective": "ignore",
   "tailwindCSS.lint.unknownAtRules": "ignore",
-  "tailwindCSS.lint.cssConflict": "warning",
+  "tailwindCSS.lint.cssConflict": "ignore",
+  "tailwindCSS.lint.recommendedVariantOrder": "ignore",
+  "tailwindCSS.lint.invalidScreen": "ignore",
+  "tailwindCSS.lint.invalidVariant": "ignore",
+  "tailwindCSS.lint.invalidConfigPath": "ignore",
 
   // Teach the extension to recognize class strings inside cn() and cva()
   "tailwindCSS.experimental.classRegex": [

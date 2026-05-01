@@ -85,6 +85,7 @@ interface ChatMessage {
     amount?: number;
     interestRate?: number;
     goal_name?: string;
+    emoji?: string;
   };
   savedStatus?: 'pending' | 'saved' | 'cancelled';
   timestamp: Date;
@@ -324,16 +325,16 @@ export default function AiChatPage() {
 
           await createWalletWithOpeningBalance(
             {
-              name:    wd.name,
+              name:    wd.name || '',
               type:    'cash',
               icon:    '💳',
-              balance: wd.balance,
+              balance: wd.balance || 0,
               user_id: user.id,
             },
             user.id
           );
 
-          toast(`เพิ่มกระเป๋า "${wd.name}" สำเร็จ!`, 'success');
+          toast(`เพิ่มกระเป๋า "${wd.name || ''}" สำเร็จ!`, 'success');
           break;
         }
 
@@ -345,10 +346,10 @@ export default function AiChatPage() {
           const now = new Date();
           await upsertBudget(
             {
-              categoryName:   bd.category,
+              categoryName:   bd.category || '',
               icon:           '📊',
               spent:          0,
-              limit:          bd.amount,
+              limit:          bd.amount || 0,
               color:          '#8B8CF8',
               rolloverPolicy: 'reset',
               month:          now.getMonth() + 1,
@@ -357,7 +358,7 @@ export default function AiChatPage() {
             user.id
           );
 
-          toast(`ตั้งงบ "${bd.category}" ${formatCurrency(bd.amount)} สำเร็จ!`, 'success');
+          toast(`ตั้งงบ "${bd.category || ''}" ${formatCurrency(bd.amount || 0)} สำเร็จ!`, 'success');
           break;
         }
 
@@ -370,27 +371,30 @@ export default function AiChatPage() {
             .from('debts')
             .insert([{
               user_id:          user.id,
-              name:             dd.name,
-              total_amount:     dd.amount,
-              remaining_amount: dd.amount,
+              name:             dd.name || '',
+              total_amount:     dd.amount || 0,
+              remaining_amount: dd.amount || 0,
               interest_rate:    dd.interestRate || 0,
               is_deleted:       false,
             }]);
 
           if (error) throw error;
 
-          toast(`บันทึกหนี้ "${dd.name}" ${formatCurrency(dd.amount)} สำเร็จ!`, 'success');
+          toast(`บันทึกหนี้ "${dd.name || ''}" ${formatCurrency(dd.amount || 0)} สำเร็จ!`, 'success');
           break;
         }
 
         // ── Add to Goal (Savings) ──
         case 'add_to_goal': {
           const gd = msg.actionData;
-          if (!gd) return;
+          if (!gd || !gd.goal_name) {
+            toast('ข้อผิดพลาด: ไม่พบชื่อเป้าหมาย', 'error');
+            return;
+          }
 
           // Find the matching goal by name (fuzzy match)
           const goals = await getGoals(user.id);
-          const goalName = gd.goal_name.toLowerCase().trim();
+          const goalName = String(gd.goal_name).toLowerCase().trim();
           const matchedGoal = goals.find((g) => {
             const gn = g.name.toLowerCase();
             return gn.includes(goalName) || goalName.includes(gn);
@@ -404,20 +408,20 @@ export default function AiChatPage() {
           // Insert income transaction into the goal's linked wallet
           await addTransaction(
             {
-              note:             `ออมเงิน — ${matchedGoal.name}`,
+              note:             `${gd.emoji || '🎯'} ออมเงิน — ${matchedGoal.name}`,
               categoryName:     'ออมเงิน',
-              amount:           gd.amount,
+              amount:           gd.amount || 0,
               type:             'income',
               transaction_date: new Date().toISOString(),
               walletId:         matchedGoal.linked_wallet_id,
               walletName:       matchedGoal.wallet?.name ?? `🎯 ${matchedGoal.name}`,
               walletType:       'savings',
-              emoji:            '🎯',
+              emoji:            '',
             },
             user.id
           );
 
-          toast(`ออมเงิน ${formatCurrency(gd.amount)} เข้าเป้าหมาย "${matchedGoal.name}" สำเร็จ!`, 'success');
+          toast(`ออมเงิน ${formatCurrency(gd.amount || 0)} เข้าเป้าหมาย "${matchedGoal.name}" สำเร็จ!`, 'success');
           break;
         }
 
@@ -559,7 +563,7 @@ export default function AiChatPage() {
                             <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">กระเป๋าเงินใหม่</p>
                           </div>
                           <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
-                            {formatCurrency(msg.actionData.balance)}
+                            {formatCurrency(msg.actionData.balance || 0)}
                           </p>
                         </div>
                       )}
@@ -571,7 +575,7 @@ export default function AiChatPage() {
                             <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">งบประมาณรายเดือน</p>
                           </div>
                           <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
-                            {formatCurrency(msg.actionData.amount)}
+                            {formatCurrency(msg.actionData.amount || 0)}
                           </p>
                         </div>
                       )}
@@ -581,23 +585,23 @@ export default function AiChatPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.name}</p>
                             <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">
-                              {msg.actionData.interestRate > 0 ? `ดอกเบี้ย ${msg.actionData.interestRate}%` : 'ไม่มีดอกเบี้ย'}
+                              {msg.actionData.interestRate && msg.actionData.interestRate > 0 ? `ดอกเบี้ย ${msg.actionData.interestRate}%` : 'ไม่มีดอกเบี้ย'}
                             </p>
                           </div>
                           <p className="text-sm font-semibold font-mono text-[var(--cyber-red)] shrink-0">
-                            {formatCurrency(msg.actionData.amount)}
+                            {formatCurrency(msg.actionData.amount || 0)}
                           </p>
                         </div>
                       )}
                       {msg.intent === 'add_to_goal' && (
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">🎯</div>
+                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">{msg.actionData.emoji || '🎯'}</div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.goal_name}</p>
                             <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">ออมเงินเข้าเป้าหมาย</p>
                           </div>
                           <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
-                            +{formatCurrency(msg.actionData.amount)}
+                            +{formatCurrency(msg.actionData.amount || 0)}
                           </p>
                         </div>
                       )}
@@ -610,10 +614,10 @@ export default function AiChatPage() {
                       <div className="flex items-center gap-2 text-[var(--cyber-green)] text-sm font-medium">
                         <Check size={14} />
                         <span>
-                          {msg.intent === 'add_wallet' && `เพิ่มกระเป๋า "${msg.actionData.name}" ${formatCurrency(msg.actionData.balance)} แล้ว`}
-                          {msg.intent === 'set_budget' && `ตั้งงบ "${msg.actionData.category}" ${formatCurrency(msg.actionData.amount)} แล้ว`}
-                          {msg.intent === 'add_debt' && `บันทึกหนี้ "${msg.actionData.name}" ${formatCurrency(msg.actionData.amount)} แล้ว`}
-                          {msg.intent === 'add_to_goal' && `ออมเงิน ${formatCurrency(msg.actionData.amount)} เข้า "${msg.actionData.goal_name}" แล้ว`}
+                          {msg.intent === 'add_wallet' && `เพิ่มกระเป๋า "${msg.actionData.name || ''}" ${formatCurrency(msg.actionData.balance || 0)} แล้ว`}
+                          {msg.intent === 'set_budget' && `ตั้งงบ "${msg.actionData.category || ''}" ${formatCurrency(msg.actionData.amount || 0)} แล้ว`}
+                          {msg.intent === 'add_debt' && `บันทึกหนี้ "${msg.actionData.name || ''}" ${formatCurrency(msg.actionData.amount || 0)} แล้ว`}
+                          {msg.intent === 'add_to_goal' && `ออมเงิน ${formatCurrency(msg.actionData.amount || 0)} เข้า "${msg.actionData.goal_name || ''}" แล้ว`}
                         </span>
                       </div>
                     </div>
