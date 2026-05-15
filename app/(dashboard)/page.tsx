@@ -1,32 +1,41 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, Variants } from 'framer-motion';
-import { Plus, Loader2 } from 'lucide-react';
-import BalanceHero          from '@/components/dashboard/BalanceHero';
-import WalletCarousel       from '@/components/dashboard/WalletCarousel';
-import SpendingBreakdown    from '@/components/dashboard/SpendingBreakdown';
-import GoalGrid             from '@/components/goals/GoalGrid';
-import TransactionList      from '@/components/dashboard/TransactionList';
-import QuickAddModal        from '@/components/dashboard/QuickAddModal';
-import SectionHeader        from '@/components/ui/SectionHeader';
-import { useDashboard }     from '@/hooks/useDashboard';
-import { useGoals }         from '@/hooks/useGoals';
-import Link                 from 'next/link';
+// ═══════════════════════════════════════════════════════════════════
+// Dashboard Page — Utopia Tokyo HUD
+//
+// §3: GSAP kinetic typography + staggered section reveals
+// §4: ScrollTrigger-driven card entrances
+// §5: Dashboard DoF effect when AI chat opens
+//
+// FloatingDock lives in layout.tsx (outside transform context)
+// and communicates via DockActionsContext.
+// ═══════════════════════════════════════════════════════════════════
 
-// ── Animation Variants ──
-const containerVariants: Variants = {
-  hidden:  { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.10, delayChildren: 0.04 } },
-};
+import { useRef } from 'react';
+import { Loader2 } from 'lucide-react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
+import { useDockActions } from '@/hooks/useDockActions';
+import BalanceHero from '@/components/dashboard/BalanceHero';
+import WalletCarousel from '@/components/dashboard/WalletCarousel';
+import SpendingBreakdown from '@/components/dashboard/SpendingBreakdown';
+import GoalGrid from '@/components/goals/GoalGrid';
+import TransactionList from '@/components/dashboard/TransactionList';
+import QuickAddModal from '@/components/dashboard/QuickAddModal';
+import AIChatBottomSheet from '@/components/ai/AIChatBottomSheet';
+import SectionHeader from '@/components/ui/SectionHeader';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useGoals } from '@/hooks/useGoals';
+import Link from 'next/link';
 
-const itemVariants: Variants = {
-  hidden:  { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-};
+gsap.registerPlugin(ScrollTrigger);
 
 export default function DashboardPage() {
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const { aiChatOpen, quickAddOpen, closeAiChat, closeQuickAdd } = useDockActions();
+
+  // GSAP scope ref for section stagger animations
+  const dashboardRef = useRef<HTMLDivElement>(null);
 
   const {
     wallets,
@@ -43,12 +52,38 @@ export default function DashboardPage() {
 
   const { goals, loading: goalsLoading } = useGoals();
 
+  // ── GSAP Stagger Reveals ──
+  useGSAP(
+    () => {
+      if (!dashboardRef.current || loading || goalsLoading) return;
+
+      const sections = gsap.utils.toArray<HTMLElement>(
+        '.dashboard-section',
+        dashboardRef.current
+      );
+
+      if (sections.length === 0) return;
+
+      gsap.set(sections, { y: 30, opacity: 0 });
+
+      gsap.to(sections, {
+        y: 0,
+        opacity: 1,
+        duration: 0.5,
+        ease: 'power3.out',
+        stagger: 0.08,
+        delay: 0.05,
+      });
+    },
+    { scope: dashboardRef, dependencies: [loading, goalsLoading] }
+  );
+
   // ── Loading State ──
   if (loading || goalsLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <Loader2 className="w-7 h-7 text-[var(--cyber-green)] animate-spin" />
-        <p className="text-xs text-[var(--cyber-text-secondary)]">
+        <Loader2 className="w-7 h-7 text-(--cyber-green) animate-spin" />
+        <p className="text-xs text-(--cyber-text-secondary)">
           Loading your data...
         </p>
       </div>
@@ -57,98 +92,85 @@ export default function DashboardPage() {
 
   // ── Map transactions for TransactionList ──
   const recentTx = recentTransactions.map((t) => ({
-    id:               t.id,
-    emoji:            t.emoji,
-    note:             t.note,
-    categoryName:     t.categoryName,
-    amount:           t.amount,
-    type:             t.type as 'income' | 'expense' | 'transfer',
+    id: t.id,
+    emoji: t.emoji,
+    note: t.note,
+    categoryName: t.categoryName,
+    amount: t.amount,
+    type: t.type as 'income' | 'expense' | 'transfer',
     transaction_date: t.transaction_date,
-    walletName:       t.walletName,
-    walletType:       t.walletType,
+    walletName: t.walletName,
+    walletType: t.walletType,
+    is_ai_generated: t.is_ai_generated,
   }));
 
   return (
     <>
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6 pb-24"
+      {/* Dashboard content with DoF effect */}
+      <div
+        ref={dashboardRef}
+        className={`space-y-6 pb-32 dashboard-dof ${
+          aiChatOpen ? 'dashboard-dof--active' : ''
+        }`}
       >
         {/* Balance Hero */}
-        <motion.div variants={itemVariants}>
+        <div className="dashboard-section">
           <BalanceHero
             totalBalance={totalBalance}
             totalIncome={totalIncome}
             totalExpense={totalExpense}
           />
-        </motion.div>
+        </div>
 
         {/* Wallet Carousel */}
-        <motion.div variants={itemVariants}>
+        <div className="dashboard-section">
           <WalletCarousel wallets={wallets} />
-        </motion.div>
+        </div>
 
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Savings Goals Widget */}
-          <motion.div variants={itemVariants} className="flex flex-col space-y-3">
+          <div className="dashboard-section flex flex-col space-y-3">
             <div className="flex items-center justify-between">
               <SectionHeader title="Savings Goals" noDivider={true} mb="" />
-              <Link href="/goals" className="text-[11px] font-medium text-[var(--cyber-cyan)] hover:opacity-70 transition-opacity">
+              <Link
+                href="/goals"
+                className="text-[11px] font-medium text-(--cyber-cyan) hover:opacity-70 transition-opacity"
+              >
                 View All
               </Link>
             </div>
             <GoalGrid goals={goals.slice(0, 2)} columns={1} />
-          </motion.div>
+          </div>
 
           {/* Spending Donut Chart */}
-          <motion.div variants={itemVariants}>
+          <div className="dashboard-section">
             <SectionHeader title="Spending Breakdown" />
             <SpendingBreakdown
               donutSegments={donutSegments}
               spendingByCategory={spendingByCategory}
               totalSpending={totalSpending}
             />
-          </motion.div>
+          </div>
         </div>
 
         {/* Recent Transactions */}
-        <motion.div variants={itemVariants}>
+        <div className="dashboard-section">
           <TransactionList transactions={recentTx} />
-        </motion.div>
-      </motion.div>
-
-      {/* Sticky Quick Add Button */}
-      <motion.div
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5, type: 'spring', damping: 24 }}
-        className="fixed bottom-0 left-0 right-0 lg:left-[260px] z-30 p-4 pointer-events-none"
-      >
-        <div className="max-w-[1200px] mx-auto">
-          <button
-            onClick={() => setQuickAddOpen(true)}
-            className="
-              pointer-events-auto w-full flex items-center justify-center gap-2.5
-              rounded-2xl bg-[var(--cyber-green)] text-white
-              font-semibold text-sm py-4
-              shadow-[0_4px_24px_var(--cyber-green-glow)]
-              hover:opacity-90 transition-all duration-200
-              active:scale-[0.99]
-            "
-          >
-            <Plus size={18} strokeWidth={2.5} />
-            Quick Add
-          </button>
         </div>
-      </motion.div>
+      </div>
 
+      {/* Modals — controlled via DockActions context */}
       <QuickAddModal
         isOpen={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
+        onClose={closeQuickAdd}
         onSave={refetch}
+      />
+
+      <AIChatBottomSheet
+        isOpen={aiChatOpen}
+        onClose={closeAiChat}
+        onSaved={refetch}
       />
     </>
   );

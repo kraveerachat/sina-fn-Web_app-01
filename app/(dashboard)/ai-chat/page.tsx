@@ -17,6 +17,7 @@ import { useToast }                      from '@/hooks/useToast';
 import { addTransaction, createWalletWithOpeningBalance, upsertBudget, getGoals } from '@/lib/supabase/queries';
 import { supabase }                      from '@/lib/supabase/client';
 import { dispatchAppMutate }             from '@/lib/events';
+import ConfirmationPreview               from '@/components/ai/ConfirmationPreview';
 
 interface ParsedTx {
   description: string;
@@ -25,6 +26,9 @@ interface ParsedTx {
   category: string;
   emoji: string;
   wallet_hint: string;
+  currency?: string;
+  amount_thb?: number | null;
+  is_ai_generated?: boolean;
 }
 
 // ── Smart wallet matching — case-insensitive, partial match, cash fallback ──
@@ -309,6 +313,9 @@ export default function AiChatPage() {
                 walletName:       wallets.find(w => w.id === walletId)?.name ?? 'กระเป๋าหลัก',
                 walletType:       wallets.find(w => w.id === walletId)?.type ?? 'cash',
                 emoji:            tx.emoji || '💸',
+                amount_thb:       tx.amount_thb ?? tx.amount,
+                currency:         tx.currency ?? 'THB',
+                is_ai_generated:  tx.is_ai_generated ?? true,
               },
               user.id
             );
@@ -481,8 +488,8 @@ export default function AiChatPage() {
         <h1 className="text-2xl font-bold text-[var(--cyber-text)]">แชทกับ AI</h1>
       </div>
 
-      {/* Message list */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0">
+      {/* Message list — heavy glassmorphism container */}
+      <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0 bg-black/40 backdrop-blur-3xl border border-white/[0.08] rounded-2xl p-4">
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
             <motion.div
@@ -493,17 +500,17 @@ export default function AiChatPage() {
               className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {msg.role === 'ai' && (
-                <div className="shrink-0 w-8 h-8 bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 flex items-center justify-center">
+                <div className="shrink-0 w-8 h-8 bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 flex items-center justify-center rounded-lg">
                   <Bot size={14} className="text-[var(--cyber-green)]" />
                 </div>
               )}
 
               <div className={`max-w-[85%] lg:max-w-[70%] ${msg.role === 'user' ? 'order-1' : ''}`}>
                 <div className={`
-                  px-4 py-3
+                  px-4 py-3 rounded-xl
                   ${msg.role === 'user'
                     ? 'bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 text-[var(--cyber-text)]'
-                    : 'bg-[var(--cyber-surface)] border border-[var(--cyber-border)] text-[var(--cyber-text)]'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-[var(--cyber-text)]'
                   }
                 `}>
                   {/* Intent badge for non-transaction actions */}
@@ -518,43 +525,23 @@ export default function AiChatPage() {
 
                   <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
 
-                  {/* ── Transaction preview cards ── */}
+                  {/* ── Transaction preview with animated confirmation ── */}
                   {msg.parsedTransactions && msg.parsedTransactions.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {msg.parsedTransactions.map((tx, i) => (
-                        <div key={i} className="flex items-center gap-3 bg-white/5 border border-white/10 p-3 rounded-xl">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">
-                            {tx.emoji}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[var(--cyber-text)] truncate">{tx.description}</p>
-                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">{tx.category}</p>
-                          </div>
-                          <p className={`text-sm font-semibold font-mono shrink-0 ${
-                            tx.type === 'income' ? 'text-[var(--cyber-green)]' : 'text-[var(--cyber-red)]'
-                          }`}>
-                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                          </p>
-                        </div>
-                      ))}
-
-                      {/* Total row */}
-                      <div className="flex items-center justify-between pt-2 px-1 border-t border-white/10">
-                        <span className="text-xs text-[var(--cyber-text-muted)]">TOTAL</span>
-                        <span className="text-sm font-bold font-mono text-[var(--cyber-text)]">
-                          {formatCurrency(
-                            msg.parsedTransactions.reduce(
-                              (sum, tx) => sum + (tx.type === 'income' ? tx.amount : -tx.amount), 0
-                            ), true
-                          )}
-                        </span>
-                      </div>
-                    </div>
+                    <ConfirmationPreview
+                      transactions={msg.parsedTransactions}
+                      status={
+                        msg.savedStatus === 'saved' ? 'saved'
+                          : msg.savedStatus === 'cancelled' ? 'cancelled'
+                          : 'pending'
+                      }
+                      onConfirm={() => handleSave(msg.id)}
+                      onCancel={() => handleCancel(msg.id)}
+                    />
                   )}
 
-                  {/* ── Action preview card (wallet / budget / debt) ── */}
+                  {/* ── Action preview card (wallet / budget / debt) — ai-sparkle ── */}
                   {msg.actionData && msg.savedStatus === 'pending' && (
-                    <div className="mt-3 bg-white/5 border border-white/10 p-3 rounded-xl">
+                    <div className="mt-3 bg-white/[0.04] border border-white/[0.08] p-3 rounded-xl ai-sparkle">
                       {msg.intent === 'add_wallet' && (
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">💳</div>
@@ -623,8 +610,8 @@ export default function AiChatPage() {
                     </div>
                   )}
 
-                  {/* ── Action buttons (shared for all pending intents) ── */}
-                  {msg.savedStatus === 'pending' && (
+                  {/* ── Action buttons for non-transaction intents ── */}
+                  {msg.savedStatus === 'pending' && msg.intent !== 'record_transaction' && (
                     <div className="flex gap-2 pt-3">
                       <button
                         onClick={() => handleCancel(msg.id)}
@@ -641,13 +628,9 @@ export default function AiChatPage() {
                     </div>
                   )}
 
-                  {/* ── Saved status for transactions ── */}
+                  {/* ── View Dashboard after save (transactions handled by ConfirmationPreview) ── */}
                   {msg.savedStatus === 'saved' && msg.intent === 'record_transaction' && (
-                    <div className="space-y-3 pt-3">
-                      <div className="flex items-center gap-1.5 text-[var(--cyber-green)] text-xs font-medium">
-                        <Check size={14} />
-                        <span>บันทึกและอัปเดตยอดคงเหลือแล้ว</span>
-                      </div>
+                    <div className="pt-3">
                       <button
                         onClick={() => router.push('/')}
                         className="w-full py-2 px-4 bg-[var(--cyber-surface)] border border-[var(--cyber-green)]/30 text-[var(--cyber-text)] hover:text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/10 hover:border-[var(--cyber-green)] rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
@@ -669,7 +652,8 @@ export default function AiChatPage() {
                     </div>
                   )}
 
-                  {msg.savedStatus === 'cancelled' && (
+                  {/* ── Cancelled status for non-transaction intents ── */}
+                  {msg.savedStatus === 'cancelled' && !msg.parsedTransactions && (
                     <div className="flex items-center gap-1.5 pt-3 text-[var(--cyber-text-muted)] text-xs font-medium">
                       <X size={14} /> <span>ยกเลิกแล้ว (Cancelled)</span>
                     </div>
@@ -682,7 +666,7 @@ export default function AiChatPage() {
               </div>
 
               {msg.role === 'user' && (
-                <div className="shrink-0 w-8 h-8 bg-[var(--cyber-surface-alt)] border border-[var(--cyber-border)] flex items-center justify-center order-2">
+                <div className="shrink-0 w-8 h-8 bg-white/[0.04] border border-white/[0.08] flex items-center justify-center order-2 rounded-lg">
                   <User size={14} className="text-[var(--cyber-text-secondary)]" />
                 </div>
               )}
@@ -693,10 +677,10 @@ export default function AiChatPage() {
         {/* Loading indicator */}
         {isLoading && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
-            <div className="w-8 h-8 bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 flex items-center justify-center">
+            <div className="w-8 h-8 bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 flex items-center justify-center rounded-lg">
               <Bot size={14} className="text-[var(--cyber-green)]" />
             </div>
-            <div className="bg-[var(--cyber-surface)] border border-[var(--cyber-border)] px-4 py-3 flex items-center gap-2">
+            <div className="bg-white/[0.04] border border-white/[0.08] px-4 py-3 flex items-center gap-2 rounded-xl">
               <Loader2 size={14} className="text-[var(--cyber-green)] animate-spin" />
               <span className="cyber-label status-blip">กำลังวิเคราะห์...</span>
             </div>
@@ -716,7 +700,7 @@ export default function AiChatPage() {
               <button
                 key={s}
                 onClick={() => handleSend(s)}
-                className="border border-[var(--cyber-border)] bg-[var(--cyber-surface-alt)] px-3 py-1.5 text-xs text-[var(--cyber-text-secondary)] hover:text-[var(--cyber-green)] hover:border-[var(--cyber-green)]/30 transition-all font-mono"
+                className="border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-[var(--cyber-text-secondary)] hover:text-[var(--cyber-green)] hover:border-[var(--cyber-green)]/30 transition-all font-mono rounded-lg"
               >
                 &quot;{s}&quot;
               </button>
@@ -736,10 +720,10 @@ export default function AiChatPage() {
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="พิมพ์อะไรก็ได้... บันทึกรายจ่าย เพิ่มกระเป๋า ตั้งงบ หรือถามทั่วไป"
             className="
-              flex-1 border border-[var(--cyber-border)] bg-[var(--cyber-surface-alt)]
+              flex-1 border border-white/[0.08] bg-white/[0.03]
               px-4 py-3 text-sm text-[var(--cyber-text)]
               focus:border-[var(--cyber-green)]/30 outline-none transition-all font-mono
-              placeholder-[var(--cyber-text-muted)]
+              placeholder-[var(--cyber-text-muted)] rounded-lg
             "
           />
           <button
@@ -749,7 +733,7 @@ export default function AiChatPage() {
               flex h-[46px] w-[46px] items-center justify-center
               bg-[var(--cyber-green)] text-[var(--cyber-bg)]
               hover:bg-[var(--cyber-green)]/80 transition-all
-              disabled:opacity-40 disabled:cursor-not-allowed
+              disabled:opacity-40 disabled:cursor-not-allowed rounded-lg
             "
           >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}

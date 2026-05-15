@@ -1,13 +1,17 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════════════
+// CyberCard — Holographic Glassmorphism Surface
+//
+// Utopia Tokyo §2:
+//  ✓ Solid background removed → glass-card backdrop-blur
+//  ✓ Ultra-subtle border-white/5
+//  ✓ Holographic sheen on hover
+// ═══════════════════════════════════════════════════════════════════
+
 import { cn } from '@/lib/utils';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import React from 'react';
-
-// ─────────────────────────────────────────────────────────────────
-// CyberCard — Modern Minimal Surface Card
-// Soft rounded corners, subtle shadows, clean borders.
-// ─────────────────────────────────────────────────────────────────
 
 type CardVariant = 'default' | 'danger' | 'success' | 'warn';
 
@@ -26,19 +30,19 @@ interface CyberCardProps extends HTMLMotionProps<'div'> {
 
 const variantStyles: Record<CardVariant, { border: string; glow: string }> = {
   default: {
-    border:  'border-[var(--cyber-border)]',
+    border:  'border-white/[0.06]',
     glow:    'shadow-[0_0_24px_var(--cyber-green-glow)]',
   },
   danger: {
-    border:  'border-[var(--cyber-red)]/20',
+    border:  'border-[var(--cyber-red)]/10',
     glow:    'shadow-[0_0_24px_var(--cyber-red-glow)]',
   },
   success: {
-    border:  'border-[var(--color-success)]/20',
+    border:  'border-[var(--color-success)]/10',
     glow:    'shadow-[0_0_24px_var(--color-success-light)]',
   },
   warn: {
-    border:  'border-[var(--cyber-amber)]/20',
+    border:  'border-[var(--cyber-amber)]/10',
     glow:    'shadow-[0_0_24px_var(--cyber-amber-glow)]',
   },
 };
@@ -60,10 +64,13 @@ export default function CyberCard({
     <motion.div
       className={cn(
         'relative overflow-hidden rounded-2xl border',
-        'bg-[var(--cyber-surface)]',
+        // Glassmorphism — no solid background
+        'glass-card',
         v.border,
         !noPadding && 'p-5',
         glow && v.glow,
+        // Holographic sheen on hover
+        'holo-sheen',
         className
       )}
       {...props}

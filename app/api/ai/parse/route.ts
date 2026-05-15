@@ -26,7 +26,8 @@ const TransactionSchema = z.object({
     type: z.enum(['income', 'expense']),
     category: z.string(),
     emoji: z.string().optional(),
-    wallet_hint: z.string().default('เงินสด')
+    wallet_hint: z.string().default('เงินสด'),
+    currency: z.string().default('THB'),
   })),
   message: z.string().optional()
 });
@@ -187,7 +188,18 @@ REQUIRED OUTPUT FORMAT (strict JSON, no markdown, no backticks):
         }
 
         const validated = TransactionSchema.parse(parsed);
-        return NextResponse.json({ intent: 'record_transaction', data: validated });
+
+        // Enrich each transaction with AI-generation metadata and THB amount
+        const enriched = {
+          ...validated,
+          transactions: validated.transactions.map((tx) => ({
+            ...tx,
+            amount_thb: tx.currency === 'THB' ? tx.amount : null,
+            is_ai_generated: true,
+          })),
+        };
+
+        return NextResponse.json({ intent: 'record_transaction', data: enriched });
       }
 
       // ── Case 2: Add Wallet ──

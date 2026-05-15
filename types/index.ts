@@ -54,6 +54,19 @@ export interface Transaction {
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
+  // Multi-currency
+  amount_thb?: number | null;
+  currency?: string | null;
+  exchange_rate?: number | null;
+  // AI & metadata flags
+  is_ai_generated?: boolean | null;
+  emoji?: string | null;
+  // Split & OCR
+  is_split?: boolean | null;
+  split_pending_amount?: number | null;
+  ocr_image_url?: string | null;
+  // Budget link
+  budget_id?: string | null;
   // Joined fields (optional, for display)
   category?: Category;
   wallet?: Wallet;
@@ -95,9 +108,8 @@ export interface MonthlyBill {
   user_id: string;
   name: string;
   amount: number;
-  due_day: number;
+  due_day: number | null;
   is_paid: boolean;
-  linked_budget_id: string | null;
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
@@ -109,9 +121,12 @@ export interface Debt {
   name: string;
   total_amount: number;
   remaining_amount: number;
+  principal_amount: number | null;
   interest_rate: number | null;
   minimum_payment: number | null;
   due_day: number | null;
+  total_installments: number | null;
+  remaining_installments: number | null;
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
@@ -163,6 +178,14 @@ export interface AppTransaction {
   walletId: string;
   walletName: string;
   walletType: string;
+  // Multi-currency (optional for display)
+  amount_thb?: number | null;
+  currency?: string | null;
+  // AI & metadata flags
+  is_ai_generated?: boolean | null;
+  // Split & OCR
+  is_split?: boolean | null;
+  ocr_image_url?: string | null;
 }
 
 /**

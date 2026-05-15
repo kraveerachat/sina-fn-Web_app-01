@@ -50,7 +50,12 @@ export async function getTransactions(userId: string) {
     transaction_date: t.transaction_date,
     walletId: t.wallet_id,
     walletName: t.wallets?.name || 'กระเป๋าหลัก',
-    walletType: t.wallets?.type || 'cash'
+    walletType: t.wallets?.type || 'cash',
+    amount_thb: t.amount_thb ?? null,
+    currency: t.currency ?? 'THB',
+    is_ai_generated: t.is_ai_generated ?? false,
+    is_split: t.is_split ?? false,
+    ocr_image_url: t.ocr_image_url ?? null,
   })) as AppTransaction[];
 }
 
@@ -104,9 +109,6 @@ export async function addTransaction(transaction: Omit<AppTransaction, 'id'>, us
   // Resolve category UUID (null-safe — returns null if category creation fails)
   const categoryId = await getOrCreateCategory(transaction.categoryName || 'อื่นๆ', userId);
 
-  // ── DB schema columns: id, user_id, wallet_id, category_id,
-  //    amount, type, note, transaction_date, created_at, updated_at, is_deleted
-  // NOTE: 'wallet_name' and 'emoji' are AppTransaction ViewModel fields only — NOT in DB.
   const { data, error } = await supabase
     .from('transactions')
     .insert([{
@@ -117,7 +119,12 @@ export async function addTransaction(transaction: Omit<AppTransaction, 'id'>, us
       type:             transaction.type,
       transaction_date: transaction.transaction_date,
       wallet_id:        transaction.walletId,
-      // emoji       → NOT a DB column, omitted
+      emoji:            transaction.emoji || null,
+      amount_thb:       transaction.amount_thb ?? null,
+      currency:         transaction.currency ?? 'THB',
+      is_ai_generated:  transaction.is_ai_generated ?? false,
+      is_split:         transaction.is_split ?? false,
+      ocr_image_url:    transaction.ocr_image_url ?? null,
     }])
     .select()
     .single();
@@ -423,16 +430,318 @@ export async function recalculateWalletBalances(userId: string) {
   return results;
 }
 
-// ── Bills (stub — schema planned for Phase 3) ──
-export async function getBills(_userId: string): Promise<never[]> {
+// ── Debts ──
+import type { Debt, MonthlyBill } from '@/types';
+
+export async function getDebts(userId: string): Promise<Debt[]> {
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
-  // Bills table not yet created — returns empty until Phase 3 implementation
-  return [];
+
+  const { data, error } = await supabase
+    .from('debts')
+    .select('*')
+    .eq('user_id', userId)
+    .or('is_deleted.is.null,is_deleted.eq.false');
+
+  if (error) throw error;
+  return (data ?? []) as Debt[];
 }
 
-export async function toggleBillPaid(_id: string): Promise<true> {
+export async function createDebt(
+  debt: Omit<Debt, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>,
+  userId: string
+): Promise<Debt> {
   if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
-  return true;
+
+  const { data, error } = await supabase
+    .from('debts')
+    .insert([{
+      user_id:          userId,
+      name:             debt.name,
+      total_amount:     debt.total_amount,
+      remaining_amount: debt.remaining_amount,
+      principal_amount: debt.principal_amount ?? null,
+      interest_rate:    debt.interest_rate ?? null,
+      minimum_payment:  debt.minimum_payment ?? null,
+      due_day:          debt.due_day ?? null,
+      is_deleted:       false,
+    }])
+    .select()
+    .single();
+
+  if (error) throw new Error(`createDebt failed: ${formatSupabaseError(error)}`);
+  return data as Debt;
+}
+
+export async function deleteDebt(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('debts')
+    .update({ is_deleted: true, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// ── Monthly Bills ──
+export async function getMonthlyBills(userId: string): Promise<MonthlyBill[]> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase
+    .from('monthly_bills')
+    .select('*')
+    .eq('user_id', userId)
+    .or('is_deleted.is.null,is_deleted.eq.false');
+
+  if (error) throw error;
+  return (data ?? []).map((b) => ({
+    ...b,
+    due_day: b.due_day ?? 1,
+    is_paid: b.is_paid ?? false,
+    is_deleted: b.is_deleted ?? false,
+  })) as MonthlyBill[];
+}
+
+export async function createBill(
+  bill: Omit<MonthlyBill, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>,
+  userId: string
+): Promise<MonthlyBill> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase
+    .from('monthly_bills')
+    .insert([{
+      user_id:  userId,
+      name:     bill.name,
+      amount:   bill.amount,
+      due_day:  bill.due_day ?? 1,
+      is_paid:  false,
+      is_deleted: false,
+    }])
+    .select()
+    .single();
+
+  if (error) throw new Error(`createBill failed: ${formatSupabaseError(error)}`);
+  return data as MonthlyBill;
+}
+
+export async function toggleBillPaid(id: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  // Read current state
+  const { data: bill, error: readErr } = await supabase
+    .from('monthly_bills')
+    .select('is_paid')
+    .eq('id', id)
+    .single();
+
+  if (readErr) throw readErr;
+
+  const newPaid = !(bill?.is_paid ?? false);
+  const { error } = await supabase
+    .from('monthly_bills')
+    .update({ is_paid: newPaid, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) throw error;
+  return newPaid;
+}
+
+export async function deleteBill(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+  const { error } = await supabase
+    .from('monthly_bills')
+    .update({ is_deleted: true, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+// ── Profile Management ──
+
+/** Upload a profile avatar to Supabase Storage and return the public URL. */
+export async function uploadAvatar(file: Blob, userId: string): Promise<string> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const ext = file.type === 'image/png' ? 'png' : 'jpeg';
+  const fileName = `${userId}/avatar_${Date.now()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(fileName, file, { upsert: true });
+
+  if (error) throw new Error(`Avatar upload failed: ${error.message}`);
+
+  const { data: publicUrlData } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+}
+
+/** Update user display name and optional avatar URL in Supabase Auth metadata. */
+export async function updateUserProfile(updates: {
+  name?: string;
+  avatar_url?: string;
+}): Promise<void> {
+  const { error } = await supabase.auth.updateUser({
+    data: updates,
+  });
+  if (error) throw new Error(`Profile update failed: ${formatSupabaseError(error)}`);
+}
+
+/** Change user password via Supabase Auth. */
+export async function changePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) throw new Error(`Password change failed: ${formatSupabaseError(error)}`);
+}
+
+/**
+ * Verify user's current password by attempting a sign-in.
+ * Returns true if password is correct, false otherwise.
+ */
+export async function verifyUserPassword(email: string, password: string): Promise<boolean> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  return !error;
+}
+
+/**
+ * Verify a 6-digit PIN against the stored hash in the profiles table.
+ * Returns true if the PIN matches.
+ */
+export async function verifyPin(userId: string, pin: string): Promise<boolean> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('pin_hash')
+    .eq('id', userId)
+    .single();
+
+  if (!profile?.pin_hash) return false;
+  const expected = btoa(`sina_pin:${pin}`);
+  return expected === profile.pin_hash;
+}
+
+/**
+ * Update the user's 6-digit PIN hash in the profiles table.
+ */
+export async function updatePin(userId: string, newPin: string): Promise<void> {
+  const pinHash = btoa(`sina_pin:${newPin}`);
+  const { error } = await supabase
+    .from('profiles')
+    .update({ pin_hash: pinHash, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  if (error) throw new Error(`PIN update failed: ${formatSupabaseError(error)}`);
+}
+
+// ── Wipe All User Data (Danger Zone) ──
+export async function wipeAllUserData(userId: string): Promise<{
+  transactions: number;
+  debts: number;
+  goals: number;
+  bills: number;
+}> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  // Order matters: delete children before parents to respect FK constraints.
+  // Transactions reference wallets/categories, goals reference wallets.
+
+  // 1. Delete all transactions
+  const { data: txRows, error: txErr } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('user_id', userId)
+    .select('id');
+  if (txErr) throw new Error(`Wipe transactions failed: ${formatSupabaseError(txErr)}`);
+
+  // 2. Soft-delete all debts
+  const { data: debtRows, error: debtErr } = await supabase
+    .from('debts')
+    .update({ is_deleted: true, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .or('is_deleted.is.null,is_deleted.eq.false')
+    .select('id');
+  if (debtErr) throw new Error(`Wipe debts failed: ${formatSupabaseError(debtErr)}`);
+
+  // 3. Soft-delete all goals
+  const { data: goalRows, error: goalErr } = await supabase
+    .from('goals')
+    .update({ is_deleted: true, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('is_deleted', false)
+    .select('id');
+  if (goalErr) throw new Error(`Wipe goals failed: ${formatSupabaseError(goalErr)}`);
+
+  // 4. Soft-delete all monthly bills
+  const { data: billRows, error: billErr } = await supabase
+    .from('monthly_bills')
+    .update({ is_deleted: true, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .or('is_deleted.is.null,is_deleted.eq.false')
+    .select('id');
+  if (billErr) throw new Error(`Wipe bills failed: ${formatSupabaseError(billErr)}`);
+
+  // 5. Reset all wallet balances to 0
+  await supabase
+    .from('wallets')
+    .update({ balance: 0, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('is_deleted', false);
+
+  return {
+    transactions: txRows?.length ?? 0,
+    debts: debtRows?.length ?? 0,
+    goals: goalRows?.length ?? 0,
+    bills: billRows?.length ?? 0,
+  };
+}
+
+// ── Tax Profile (stored in profiles.tax_deductions JSON) ──
+export async function getTaxDeductions(userId: string): Promise<Record<string, number>> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('tax_deductions')
+    .eq('id', userId)
+    .single();
+
+  if (error) throw error;
+  return (data?.tax_deductions as Record<string, number>) ?? {};
+}
+
+export async function saveTaxDeductions(
+  userId: string,
+  deductions: Record<string, number>
+): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      tax_deductions: deductions,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (error) throw error;
+}
+
+// ── Annual Income (derived from income transactions) ──
+export async function getAnnualIncome(userId: string, year: number): Promise<number> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const startDate = `${year}-01-01`;
+  const endDate   = `${year}-12-31`;
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('amount')
+    .eq('user_id', userId)
+    .eq('type', 'income')
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate);
+
+  if (error) throw error;
+  return (data ?? []).reduce((sum, t) => sum + (t.amount ?? 0), 0);
 }
 
 // ── Goals ──

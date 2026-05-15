@@ -1,7 +1,15 @@
 'use client';
 
-import { motion } from 'framer-motion';
+// ═══════════════════════════════════════════════════════════════════
+// BalanceHero — Net Balance HUD with Hacker Decrypt Effect
+//
+// Utopia Tokyo §3: The main financial figures use ScrambleText
+// to rapidly cycle through random glyphs before locking into
+// the actual values, creating a high-tech cinematic reveal.
+// ═══════════════════════════════════════════════════════════════════
+
 import CyberCard from '@/components/ui/CyberCard';
+import ScrambleText from '@/components/ui/ScrambleText';
 import { formatCurrency, getCurrentMonthLabel } from '@/lib/utils';
 
 interface BalanceHeroProps {
@@ -27,15 +35,14 @@ export default function BalanceHero({
         </span>
       </div>
 
-      {/* Balance amount */}
-      <motion.p
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
-        className="text-4xl lg:text-5xl font-bold font-mono text-[var(--cyber-text)] tracking-tight mb-6"
-      >
-        {formatCurrency(totalBalance)}
-      </motion.p>
+      {/* Balance amount — Hacker Decrypt */}
+      <p className="text-4xl lg:text-5xl font-bold font-mono text-[var(--cyber-text)] tracking-tight mb-6">
+        <ScrambleText
+          text={formatCurrency(totalBalance)}
+          duration={600}
+          delay={100}
+        />
+      </p>
 
       {/* Income / Expense row */}
       <div className="flex gap-4">
@@ -49,7 +56,11 @@ export default function BalanceHero({
               Income
             </p>
             <p className="text-sm font-bold font-mono text-[var(--color-success)]">
-              {formatCurrency(totalIncome, true)}
+              <ScrambleText
+                text={formatCurrency(totalIncome, true)}
+                duration={500}
+                delay={200}
+              />
             </p>
           </div>
         </div>
@@ -67,7 +78,11 @@ export default function BalanceHero({
               Expense
             </p>
             <p className="text-sm font-bold font-mono text-[var(--cyber-red)]">
-              {formatCurrency(-totalExpense, true)}
+              <ScrambleText
+                text={formatCurrency(-totalExpense, true)}
+                duration={500}
+                delay={300}
+              />
             </p>
           </div>
         </div>

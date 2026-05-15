@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Target, CalendarDays, Image as ImageIcon, Loader2, Upload, Crop } from 'lucide-react';
+import Portal from '@/components/ui/Portal';
 import type { Goal } from '@/types';
 import Cropper, { Area } from 'react-easy-crop';
 import { getCroppedImg } from '@/lib/cropUtils';
@@ -67,8 +68,9 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
   if (!isOpen) return null;
 
   return (
+    <Portal lockScroll>
     <AnimatePresence>
-      <div key="form-view" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div key="form-view" className="fixed inset-0 z-[100] h-[100dvh] w-screen flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -223,7 +225,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
 
       {/* Cropper Sub-Modal */}
       {showCropper && imageFile && (
-        <div key="crop-view" className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div key="crop-view" className="fixed inset-0 z-[110] h-[100dvh] w-screen flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-md bg-[var(--cyber-bg)] border border-[var(--cyber-border)] rounded-2xl overflow-hidden flex flex-col h-[70vh]">
             <div className="flex items-center justify-between p-4 border-b border-[var(--cyber-border)]">
               <h3 className="font-bold flex items-center gap-2">
@@ -282,5 +284,6 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
         </div>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

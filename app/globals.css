@@ -236,6 +236,217 @@ body {
   animation: fade-in 0.4s ease-out both;
 }
 
+/* ── Glassmorphism Utilities ── */
+.glass {
+  background: rgba(0, 0, 0, 0.20);
+  backdrop-filter: blur(40px) saturate(1.3);
+  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+}
+.glass-surface {
+  background: rgba(19, 19, 22, 0.45);
+  backdrop-filter: blur(32px) saturate(1.2);
+  -webkit-backdrop-filter: blur(32px) saturate(1.2);
+}
+.glass-card {
+  background: rgba(19, 19, 22, 0.35);
+  backdrop-filter: blur(24px) saturate(1.15);
+  -webkit-backdrop-filter: blur(24px) saturate(1.15);
+}
+
+/* ── Neon Static Border ──
+ *  Architecture: outer wrapper (overflow-hidden, p-[2px]) →
+ *    solid neon background layer →
+ *    inner solid box (masks the center, content lives here).
+ *  The 2px padding gap between outer and inner = visible border.
+ */
+
+/* ── Holographic Sheen (mousemove-driven via CSS custom props) ── */
+.holo-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.holo-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 60%,
+    transparent 80%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.holo-sheen:hover::after {
+  opacity: 1;
+}
+
+/* ── 3D Holographic Card (mouse-driven tilt) ── */
+.holo-card-perspective {
+  perspective: 600px;
+}
+
+.holo-card {
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+  will-change: transform;
+}
+
+/* ── Holographic Sheen — Dynamic (positioned via JS) ── */
+.holo-sheen-dynamic {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.holo-card:hover .holo-sheen-dynamic {
+  opacity: 1;
+}
+
+/* ── Glowing Inner Border (mouse-proximity driven) ── */
+.holo-glow-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.holo-card:hover .holo-glow-border {
+  border-color: rgba(139, 140, 248, 0.15);
+  box-shadow: inset 0 0 20px rgba(139, 140, 248, 0.05);
+}
+
+/* ── AI Core Button — Neon Pulse Glow ── */
+@keyframes ai-core-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(139, 140, 248, 0.25),
+      0 0 20px rgba(139, 140, 248, 0.10);
+  }
+  50% {
+    box-shadow:
+      0 0 14px rgba(139, 140, 248, 0.45),
+      0 0 36px rgba(139, 140, 248, 0.20),
+      0 0 60px rgba(139, 140, 248, 0.06);
+  }
+}
+.ai-core-btn {
+  animation: ai-core-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── AI-Generated Transaction Sparkle ── */
+@keyframes ai-sparkle-border {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.ai-sparkle {
+  position: relative;
+}
+.ai-sparkle::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(96, 165, 250, 0.30),
+    rgba(139, 140, 248, 0.20),
+    rgba(96, 165, 250, 0.05),
+    rgba(139, 140, 248, 0.30)
+  );
+  background-size: 300% 300%;
+  animation: ai-sparkle-border 4s ease infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ── Dashboard Depth-of-Field (when chat is open) ── */
+.dashboard-dof {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center top;
+}
+.dashboard-dof--active {
+  transform: scale(0.95);
+  filter: blur(8px) brightness(0.7);
+}
+
+/* ── Liquid Neon Progress Bar ── */
+@keyframes liquid-flow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.liquid-neon-cyan {
+  background: linear-gradient(
+    90deg,
+    #60A5FA,
+    #818CF8,
+    #60A5FA,
+    #38BDF8,
+    #60A5FA
+  );
+  background-size: 300% 100%;
+  animation: liquid-flow 3s ease infinite;
+  box-shadow:
+    0 0 8px rgba(96, 165, 250, 0.40),
+    0 0 16px rgba(96, 165, 250, 0.15);
+}
+
+.liquid-neon-gold {
+  background: linear-gradient(
+    90deg,
+    #FBBF24,
+    #F59E0B,
+    #FBBF24,
+    #FCD34D,
+    #FBBF24
+  );
+  background-size: 300% 100%;
+  animation: liquid-flow 3s ease infinite;
+  box-shadow:
+    0 0 8px rgba(251, 191, 36, 0.40),
+    0 0 16px rgba(251, 191, 36, 0.15);
+}
+
+/* ── Milestone Glow (goal >= 100% complete) ── */
+@keyframes milestone-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px rgba(251, 191, 36, 0.15),
+      0 0 30px rgba(251, 191, 36, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(251, 191, 36, 0.30),
+      0 0 50px rgba(251, 191, 36, 0.12),
+      0 0 80px rgba(251, 191, 36, 0.04);
+  }
+}
+.milestone-glow {
+  animation: milestone-pulse 3s ease-in-out infinite;
+  border-color: rgba(251, 191, 36, 0.20) !important;
+}
+
 /* ════════════════════════════════════════════════════════════════
    SCROLLBAR — Minimal, near-invisible
    ════════════════════════════════════════════════════════════════ */

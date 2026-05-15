@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import CyberButton from '@/components/ui/CyberButton';
+import Portal from '@/components/ui/Portal';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth }    from '@/hooks/useAuth';
@@ -194,13 +195,14 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
   const accentBg     = isExpense ? 'bg-rose-400/10'    : 'bg-emerald-400/10';
 
   return (
+    <Portal lockScroll={isOpen}>
     <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end justify-center lg:items-center"
+          className="fixed inset-0 z-[100] h-[100dvh] w-screen flex items-end justify-center lg:items-center"
         >
           {/* Backdrop */}
           <motion.div
@@ -367,13 +369,13 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
               {wallets.length > 1 && (
                 <div>
                   <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">กระเป๋าเงิน</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                  <div className="flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 hide-scrollbar">
                     {wallets.map(wallet => (
                       <button
                         key={wallet.id}
                         onClick={() => setSelectedWalletId(wallet.id)}
                         className={[
-                          'px-3 py-1.5 rounded-lg text-xs whitespace-nowrap border transition-all duration-200',
+                          'shrink-0 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap border transition-all duration-200',
                           effectiveWalletId === wallet.id
                             ? 'bg-violet-500 text-white border-violet-500 font-medium'
                             : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:border-violet-500/30',
@@ -428,5 +430,6 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
         </motion.div>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

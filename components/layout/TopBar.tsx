@@ -1,15 +1,25 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════════════
+// TopBar — Holographic Glassmorphism Header + Mobile Drawer
+//
+// Utopia Tokyo §2:
+//  ✓ Solid header background removed → glass backdrop-blur-2xl
+//  ✓ Mobile drawer uses glassmorphism
+//  ✓ Notification button has subtle glow
+// ═══════════════════════════════════════════════════════════════════
+
 import { getGreeting } from '@/lib/utils';
-import { 
-  Bell, Menu, LayoutDashboard, History, Bot, 
-  Target, Wallet, TrendingUp, CreditCard, 
-  Receipt, Calculator, Settings, X 
+import {
+  Bell, Menu, LayoutDashboard, History, Bot,
+  Target, Wallet, TrendingUp, CreditCard,
+  Receipt, Calculator, Settings, X,
 } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import Portal from '@/components/ui/Portal';
 
 const navItems = [
   { href: '/', label: 'DASHBOARD', icon: LayoutDashboard },
@@ -31,18 +41,19 @@ export default function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#2A2F38] bg-[#1A1D21]/80 backdrop-blur-xl px-4 lg:px-8">
+      {/* ── Desktop / Mobile Header — glassmorphism ── */}
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/[0.06] px-4 lg:px-8 glass">
         {/* Left — hamburger (mobile) + greeting */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-[6px] border border-[#2A2F38] text-[#6B7280] hover:bg-[#252A30] lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] text-[var(--cyber-text-secondary)] hover:bg-white/[0.04] lg:hidden transition-colors"
           >
             <Menu size={18} />
           </button>
           <div>
-            <p className="text-sm text-[#E8EAF0] font-medium">{greeting}</p>
-            <p className="text-[10px] font-mono tracking-[2px] text-[#6B7280]">
+            <p className="text-sm text-[var(--cyber-text)] font-medium">{greeting}</p>
+            <p className="text-[10px] font-mono tracking-[2px] text-[var(--cyber-text-muted)]">
               PERSONAL FINANCE HUD
             </p>
           </div>
@@ -50,35 +61,36 @@ export default function TopBar() {
 
         {/* Right — notification + avatar */}
         <div className="flex items-center gap-3">
-          <button className="relative flex h-9 w-9 items-center justify-center rounded-[6px] border border-[#2A2F38] text-[#6B7280] hover:bg-[#252A30] transition-colors">
+          <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] text-[var(--cyber-text-secondary)] hover:bg-white/[0.04] transition-colors">
             <Bell size={16} />
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#39FF14] hud-dot" />
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[var(--cyber-green)] hud-dot" />
           </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-[6px] bg-[#39FF14]/10 border border-[#39FF14]/20">
-            <span className="text-xs font-bold text-[#39FF14]">SN</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20">
+            <span className="text-xs font-bold text-[var(--cyber-green)]">SN</span>
           </div>
         </div>
       </header>
 
-      {/* ── Mobile drawer ── */}
+      {/* ── Mobile drawer — glassmorphism (Portal to escape stacking contexts) ── */}
+      <Portal lockScroll={mobileOpen}>
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[100] h-[100dvh] w-screen lg:hidden">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-[280px] bg-[#1A1D21] border-r border-[#2A2F38] flex flex-col animate-in slide-in-from-left-full duration-300">
+          <aside className="absolute left-0 top-0 h-full w-[280px] glass border-r border-white/[0.06] flex flex-col animate-in slide-in-from-left-full duration-300">
             {/* Header */}
-            <div className="flex h-16 items-center justify-between border-b border-[#2A2F38] px-5">
+            <div className="flex h-16 items-center justify-between border-b border-white/[0.06] px-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-[6px] bg-[#39FF14]">
-                  <span className="text-sm font-black text-[#1A1D21]">S</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--cyber-green)]">
+                  <span className="text-sm font-black text-[#09090B]">S</span>
                 </div>
-                <span className="text-sm font-bold tracking-[3px] text-[#E8EAF0]">SINA_FN</span>
+                <span className="text-sm font-bold tracking-[3px] text-[var(--cyber-text)]">SINA_FN</span>
               </div>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-[6px] text-[#6B7280] hover:bg-[#252A30]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--cyber-text-muted)] hover:bg-white/[0.04]"
               >
                 <X size={18} />
               </button>
@@ -95,13 +107,13 @@ export default function TopBar() {
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-[6px] px-3 py-2.5 text-xs tracking-[2px] transition-all',
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs tracking-[2px] transition-all',
                       isActive
-                        ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20'
-                        : 'text-[#6B7280] hover:bg-[#252A30] hover:text-[#E8EAF0] border border-transparent'
+                        ? 'bg-[var(--cyber-green)]/8 text-[var(--cyber-green)] border border-[var(--cyber-green)]/15'
+                        : 'text-[var(--cyber-text-muted)] hover:bg-white/[0.04] hover:text-[var(--cyber-text)] border border-transparent'
                     )}
                   >
-                    <Icon size={16} className={isActive ? 'text-[#39FF14]' : 'text-[#374151]'} />
+                    <Icon size={16} className={isActive ? 'text-[var(--cyber-green)]' : 'text-[var(--cyber-text-muted)]'} />
                     {item.label}
                   </Link>
                 );
@@ -110,6 +122,7 @@ export default function TopBar() {
           </aside>
         </div>
       )}
+      </Portal>
     </>
   );
 }
