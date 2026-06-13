@@ -209,7 +209,7 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-(--scrim) backdrop-blur-sm"
             onClick={handleClose}
           />
 
@@ -240,7 +240,7 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
                     <Check size={28} className="text-emerald-400" />
                   </motion.div>
                   <p className="text-sm font-medium text-zinc-100 tracking-wide">บันทึกสำเร็จ!</p>
-                  <p className="text-xs text-zinc-400 font-mono">
+                  <p className="text-xs text-zinc-400 tnum">
                     {isExpense ? '-' : '+'}{formatCurrency(parseFloat(amount || '0'))}
                   </p>
                 </motion.div>
@@ -299,13 +299,13 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
 
               {/* Amount */}
               <div className="text-center py-3">
-                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">จำนวนเงิน</p>
+                <p className="text-[11px] text-zinc-500  mb-2">จำนวนเงิน</p>
                 <motion.p
                   key={amount}
                   initial={{ scale: 1.05 }}
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.1 }}
-                  className={`text-4xl font-bold font-mono tracking-tight ${accentText}`}
+                  className={`text-4xl font-bold tnum tracking-tight ${accentText}`}
                 >
                   ฿{displayAmount}
                 </motion.p>
@@ -328,7 +328,7 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
 
               {/* Categories */}
               <div>
-                <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-3">หมวดหมู่</p>
+                <p className="text-[11px] text-zinc-500  mb-3">หมวดหมู่</p>
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={txType}
@@ -368,7 +368,7 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
               {/* Wallet selector — only when multiple wallets */}
               {wallets.length > 1 && (
                 <div>
-                  <p className="text-[11px] text-zinc-500 uppercase tracking-wider mb-2">กระเป๋าเงิน</p>
+                  <p className="text-[11px] text-zinc-500  mb-2">กระเป๋าเงิน</p>
                   <div className="flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 hide-scrollbar">
                     {wallets.map(wallet => (
                       <button
@@ -397,7 +397,7 @@ export default function QuickAddModal({ isOpen, onClose, onSave }: QuickAddModal
                     onClick={() => handleNumpad(key)}
                     className={[
                       'flex h-12 items-center justify-center rounded-lg border',
-                      'text-lg font-mono transition-all duration-150',
+                      'text-lg tnum transition-all duration-150',
                       key === 'DEL'
                         ? 'bg-rose-400/10 border-rose-400/20 text-rose-400 hover:bg-rose-400/15'
                         : 'bg-zinc-800 border-zinc-700 text-zinc-100 hover:bg-zinc-700',

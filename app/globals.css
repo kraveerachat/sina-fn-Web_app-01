@@ -1,112 +1,212 @@
 @import "tailwindcss";
 
+/* Make Tailwind's `dark:` variant follow the app's data-theme toggle
+   instead of the OS prefers-color-scheme — the theme switch in the
+   TopBar sets <html data-theme="dark">. Without this, any dark:*
+   utility would track the OS setting and fight the in-app toggle. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ═══════════════════════════════════════════════════════════════════
-   SINA_FN — Global CSS Design System
-   Elegant Dark Mode — Minimal, Modern, Clean
+   SINA_FN — Global Design System
+   Apple-clean · bento · light/dark · deep-blue / green / gold
+   Source of truth for both themes. Legacy --cyber-* names alias onto
+   these tokens so older components inherit the system; new code uses
+   the semantic names directly.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── CSS Custom Properties (Single Source of Truth) ── */
+/* ── Tokens : LIGHT (default) ── */
 :root {
-  /* ── Backgrounds — deep charcoal, subtle blue undertone ── */
-  --cyber-bg:           #09090B;
-  --cyber-surface:      #131316;
-  --cyber-surface-alt:  #1A1A1F;
+  --bg:        #ececed;
+  --bg-grad:   radial-gradient(1200px 700px at 80% -10%, #ffffff 0%, #ececed 55%);
+  --surface:   #ffffff;
+  --surface-2: #f5f5f7;
+  --surface-3: #ececef;
+  --text:      #1d1d1f;
+  --text-2:    #6e6e73;
+  --text-3:    #a1a1a6;
+  --border:    #e6e6ea;
+  --border-2:  #ededf0;
 
-  /* ── Borders — barely visible separation ── */
-  --cyber-border:       #23232A;
-  --border-light:       #2C2C35;
+  --blue:       #1f4287;
+  --blue-ink:   #15315f;
+  --blue-soft:  #eaf0fb;
+  --green:      #1f8a5b;
+  --green-soft: #e6f4ec;
+  --gold:       #b7892f;
+  --gold-soft:  #f7efdd;
+  --red:        #cf5b54;
+  --red-soft:   #faeae8;
+  --expense:    #8a6d57;
 
-  /* ── Primary — Muted Lavender Blue ── */
-  --cyber-green:        #8B8CF8;
-  --cyber-green-dim:    #6E6FD8;
-  --cyber-green-glow:   rgba(139, 140, 248, 0.10);
-  --cyber-green-glow-sm:rgba(139, 140, 248, 0.18);
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.03), 0 1px 1px rgba(0,0,0,.02);
+  --shadow:      0 1px 3px rgba(0,0,0,.02), 0 20px 40px -15px rgba(0,0,0,.05);
+  --shadow-lg:   0 2px 8px rgba(0,0,0,.04), 0 30px 60px -15px rgba(0,0,0,.10);
+  --shadow-dock: 0 6px 16px rgba(20,20,30,.10), 0 20px 50px rgba(20,20,30,.18);
 
-  /* ── Success — Soft Sage ── */
-  --color-success:      #34D399;
-  --color-success-dim:  #10B981;
-  --color-success-light:rgba(52, 211, 153, 0.10);
+  --r-card:  24px;
+  --r-tile:  20px;
+  --r-pill:  999px;
+  --r-input: 14px;
 
-  /* ── Danger — Muted Rose ── */
-  --cyber-red:          #FB7185;
-  --cyber-red-dim:      #E11D48;
-  --cyber-red-glow:     rgba(251, 113, 133, 0.10);
+  --glow-opacity:       0.06;
+  --glow-opacity-hover: 0.12;
+  --glow-blur:          22px;
+  --glow-blur-hover:    30px;
 
-  /* ── Warning — Warm Sand ── */
-  --cyber-amber:        #FBBF24;
-  --cyber-amber-glow:   rgba(251, 191, 36, 0.10);
+  --dock-bg:   rgba(255,255,255,.72);
+  --topbar-bg: rgba(236,236,237,.7);
+  --hair:      rgba(0,0,0,.05);
+  --scrim:     rgba(10,10,15,.42);
 
-  /* ── Info — Soft Sky ── */
-  --cyber-cyan:         #60A5FA;
-  --cyber-cyan-glow:    rgba(96, 165, 250, 0.10);
+  /* ── Legacy aliases (--cyber-*) — keep old components on the new system ── */
+  --cyber-bg:             var(--bg);
+  --cyber-surface:        var(--surface);
+  --cyber-surface-alt:    var(--surface-2);
+  --cyber-border:         var(--border);
+  --border-light:         var(--border-2);
 
-  /* ── Text — warm off-white hierarchy ── */
-  --cyber-text:         #EDEDEF;
-  --cyber-text-secondary: #71717A;
-  --cyber-text-muted:   #3F3F46;
+  --cyber-green:          var(--blue);          /* old "primary" → deep blue */
+  --cyber-green-dim:      var(--blue-ink);
+  --cyber-green-glow:     rgba(31, 66, 135, 0.10);
+  --cyber-green-glow-sm:  rgba(31, 66, 135, 0.16);
 
-  /* ── Radius ── */
-  --cyber-radius:       12px;
-  --radius-sm:          8px;
-  --radius-lg:          16px;
-  --radius-xl:          20px;
+  --color-success:        var(--green);
+  --color-success-dim:    var(--green);
+  --color-success-light:  var(--green-soft);
 
-  /* ── Legacy aliases (backward compat — do not use in new code) ── */
-  --background:         var(--cyber-bg);
-  --foreground:         var(--cyber-text);
-  --card-surface:       var(--cyber-surface);
-  --card-alt:           var(--cyber-surface-alt);
-  --border-base:        var(--cyber-border);
-  --neon-green:         var(--cyber-green);
-  --neon-green-dim:     var(--cyber-green-dim);
-  --vibrant-red:        var(--cyber-red);
-  --red-dim:            var(--cyber-red-dim);
-  --text-secondary:     var(--cyber-text-secondary);
-  --text-muted:         var(--cyber-text-muted);
+  --cyber-red:            var(--red);
+  --cyber-red-dim:        var(--red);
+  --cyber-red-glow:       var(--red-soft);
+
+  --cyber-amber:          var(--gold);
+  --cyber-amber-glow:     var(--gold-soft);
+
+  --cyber-cyan:           var(--blue);
+  --cyber-cyan-glow:      var(--blue-soft);
+
+  --cyber-text:           var(--text);
+  --cyber-text-secondary: var(--text-2);
+  --cyber-text-muted:     var(--text-3);
+
+  --cyber-radius:         16px;
+  --radius-sm:            10px;
+  --radius-lg:            20px;
+  --radius-xl:            24px;
+
+  --background:           var(--bg);
+  --foreground:           var(--text);
+  --card-surface:         var(--surface);
+  --card-alt:             var(--surface-2);
+  --border-base:          var(--border);
+  --neon-green:           var(--blue);
+  --neon-green-dim:       var(--blue-ink);
+  --vibrant-red:          var(--red);
+  --red-dim:              var(--red);
+  --text-secondary:       var(--text-2);
+  --text-muted:           var(--text-3);
 }
 
-/* ── Tailwind v4 Theme Tokens ── */
+/* ── Tokens : DARK ── */
+/* Depth in dark mode comes from surface lightness + the inset
+   "jewel" hairline baked into the shadow tokens — drop shadows are
+   invisible on a pure-black page. Ladder: bg #000 → card #1a1a1e →
+   well #232328 → track #2c2c32. */
+[data-theme="dark"] {
+  --bg:        #000000;
+  --bg-grad:   radial-gradient(1200px 700px at 80% -10%, #15151a 0%, #000000 55%);
+  --surface:   #1a1a1e;
+  --surface-2: #232328;
+  --surface-3: #2c2c32;
+  --text:      #f5f5f7;
+  --text-2:    #a1a1a8;
+  --text-3:    #76767e;
+  --border:    #303036;
+  --border-2:  #2a2a30;
+
+  --blue:       #4f86d6;
+  --blue-ink:   #7fb0f0;
+  --blue-soft:  #16243a;
+  --green:      #34b277;
+  --green-soft: #13261d;
+  --gold:       #d2a951;
+  --gold-soft:  #2a2316;
+  --red:        #e2766d;
+  --red-soft:   #321b18;
+  --expense:    #c39d82;
+
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.04);
+  --shadow:      0 2px 8px rgba(0,0,0,.4), 0 16px 40px rgba(0,0,0,.45),
+                 inset 0 0 0 1px rgba(255,255,255,.05);
+  --shadow-lg:   0 10px 24px rgba(0,0,0,.5), 0 40px 70px rgba(0,0,0,.6),
+                 inset 0 0 0 1px rgba(255,255,255,.07);
+  --shadow-dock: 0 8px 20px rgba(0,0,0,.5), 0 24px 60px rgba(0,0,0,.7);
+
+  --dock-bg:   rgba(28,28,32,.66);
+  --topbar-bg: rgba(0,0,0,.5);
+  --hair:      rgba(255,255,255,.10);
+  --scrim:     rgba(0,0,0,.55);
+
+  --glow-opacity:       0.16;
+  --glow-opacity-hover: 0.26;
+  --glow-blur:          26px;
+  --glow-blur-hover:    36px;
+
+  --cyber-green-glow:    rgba(79, 134, 214, 0.14);
+  --cyber-green-glow-sm: rgba(79, 134, 214, 0.22);
+}
+
+/* ── Tailwind v4 theme tokens ── */
 @theme inline {
-  /* Surfaces */
-  --color-cyber-bg:             var(--cyber-bg);
-  --color-cyber-surface:        var(--cyber-surface);
-  --color-cyber-surface-alt:    var(--cyber-surface-alt);
-  --color-cyber-border:         var(--cyber-border);
+  /* Semantic (preferred) */
+  --color-bg:        var(--bg);
+  --color-surface:   var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink:       var(--text);
+  --color-ink-2:     var(--text-2);
+  --color-ink-3:     var(--text-3);
+  --color-line:      var(--border);
+  --color-line-2:    var(--border-2);
+  --color-brand:     var(--blue);
+  --color-positive:  var(--green);
+  --color-premium:   var(--gold);
+  --color-negative:  var(--red);
+  --color-outflow:   var(--expense);
 
-  /* Accents */
-  --color-cyber-green:          var(--cyber-green);
-  --color-cyber-green-dim:      var(--cyber-green-dim);
-  --color-cyber-red:            var(--cyber-red);
-  --color-cyber-red-dim:        var(--cyber-red-dim);
-  --color-cyber-amber:          var(--cyber-amber);
-  --color-cyber-cyan:           var(--cyber-cyan);
+  /* Legacy */
+  --color-cyber-bg:             var(--bg);
+  --color-cyber-surface:        var(--surface);
+  --color-cyber-surface-alt:    var(--surface-2);
+  --color-cyber-border:         var(--border);
+  --color-cyber-green:          var(--blue);
+  --color-cyber-green-dim:      var(--blue-ink);
+  --color-cyber-red:            var(--red);
+  --color-cyber-red-dim:        var(--red);
+  --color-cyber-amber:          var(--gold);
+  --color-cyber-cyan:           var(--blue);
+  --color-cyber-text:           var(--text);
+  --color-cyber-text-secondary: var(--text-2);
+  --color-cyber-text-muted:     var(--text-3);
+  --color-background:           var(--bg);
+  --color-foreground:           var(--text);
+  --color-card-surface:         var(--surface);
+  --color-card-alt:             var(--surface-2);
+  --color-border-base:          var(--border);
+  --color-neon-green:           var(--blue);
+  --color-neon-green-dim:       var(--blue-ink);
+  --color-vibrant-red:          var(--red);
+  --color-red-dim:              var(--red);
+  --color-text-secondary:       var(--text-2);
+  --color-text-muted:           var(--text-3);
 
-  /* Text */
-  --color-cyber-text:           var(--cyber-text);
-  --color-cyber-text-secondary: var(--cyber-text-secondary);
-  --color-cyber-text-muted:     var(--cyber-text-muted);
-
-  /* Legacy (do not use in new code) */
-  --color-background:           var(--cyber-bg);
-  --color-foreground:           var(--cyber-text);
-  --color-card-surface:         var(--cyber-surface);
-  --color-card-alt:             var(--cyber-surface-alt);
-  --color-border-base:          var(--cyber-border);
-  --color-neon-green:           var(--cyber-green);
-  --color-neon-green-dim:       var(--cyber-green-dim);
-  --color-vibrant-red:          var(--cyber-red);
-  --color-red-dim:              var(--cyber-red-dim);
-  --color-text-secondary:       var(--cyber-text-secondary);
-  --color-text-muted:           var(--cyber-text-muted);
-
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-geist-sans), var(--font-noto-thai), -apple-system,
+    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui,
+    "Noto Sans Thai", "Sarabun", sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
-/* ── Base Reset & Typography Foundation ── */
-* {
-  box-sizing: border-box;
-}
+/* ── Base ── */
+* { box-sizing: border-box; }
 
 html {
   scroll-behavior: smooth;
@@ -114,381 +214,535 @@ html {
 }
 
 body {
-  background: var(--cyber-bg);
-  color: var(--cyber-text);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
-  line-height: 1.6;
+  background: var(--bg);
+  background-image: var(--bg-grad);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-geist-sans), var(--font-noto-thai), -apple-system,
+    BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui,
+    "Noto Sans Thai", "Sarabun", sans-serif;
+  line-height: 1.45;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transition: background-color .5s ease, color .35s ease;
+}
+
+button { font-family: inherit; }
+::selection { background: color-mix(in srgb, var(--blue) 22%, transparent); }
+
+/* Tabular numerals for balances and amounts */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 /* ════════════════════════════════════════════════════════════════
-   DESIGN SYSTEM UTILITY CLASSES
+   DESIGN SYSTEM UTILITIES
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Labels ── */
+/* ── Labels (legacy names, re-skinned quiet) ── */
 .cyber-label {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.4px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cyber-text-secondary);
+  color: var(--text-3);
   line-height: 1;
 }
 
 .cyber-label-green {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.4px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cyber-green);
+  color: var(--blue);
   line-height: 1;
 }
 
-/* ── Section Divider ── */
 .cyber-divider {
   height: 1px;
   flex: 1;
-  background: var(--cyber-border);
+  background: var(--border-2);
 }
 
-/* ── Surfaces (Card Backgrounds) ── */
+/* ── Surfaces ── */
 .cyber-surface {
-  background: var(--cyber-surface);
-  border: 1px solid var(--cyber-border);
-  border-radius: var(--cyber-radius);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-tile);
+  box-shadow: var(--shadow-sm);
 }
 
 .cyber-surface-alt {
-  background: var(--cyber-surface-alt);
-  border: 1px solid var(--cyber-border);
-  border-radius: var(--cyber-radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-input);
 }
 
-/* ── Subtle Emphasis Effects ── */
-.text-glow-green {
-  color: var(--cyber-green);
+/* ── Emphasis (legacy glow names → quiet color emphasis) ── */
+.text-glow-green { color: var(--green); font-weight: 600; }
+.text-glow-red   { color: var(--red);   font-weight: 600; }
+.glow-green      { box-shadow: var(--shadow); }
+.glow-red        { box-shadow: var(--shadow); }
+
+/* ── Modern Theme-Aware Ambient Glow System ── */
+.glow-ambient {
+  position: relative;
+  z-index: 1; /* keep content above glow layer */
+}
+.glow-ambient::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(var(--glow-blur));
+  opacity: var(--glow-opacity);
+  transition: opacity 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+              filter 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+              transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.glow-ambient-blue::before    { background: var(--blue); }
+.glow-ambient-green::before   { background: var(--green); }
+.glow-ambient-gold::before    { background: var(--gold); }
+.glow-ambient-red::before     { background: var(--red); }
+.glow-ambient-expense::before { background: var(--expense); }
+.glow-ambient-neutral::before {
+  background: var(--text-3);
+  opacity: calc(var(--glow-opacity) * 0.4);
+}
+
+.glow-ambient-hover {
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.glow-ambient-hover:hover {
+  transform: translateY(-3px);
+}
+.glow-ambient-hover:hover::before {
+  opacity: var(--glow-opacity-hover);
+  filter: blur(var(--glow-blur-hover));
+  transform: scale(1.02);
+}
+.glow-ambient-neutral.glow-ambient-hover:hover::before {
+  opacity: calc(var(--glow-opacity-hover) * 0.4);
+}
+
+/* ── Card hover elevation — lift + deeper, more diffused shadow ── */
+.lift-card {
+  transition: transform .25s cubic-bezier(.22, 1, .36, 1),
+              box-shadow .25s ease;
+}
+.lift-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift-card, .lift-card:hover { transform: none; }
+}
+
+/* ── Press / squish — tactile feedback on every interactive surface ── */
+/* Press-in is instant (100ms ease-out); release springs back with a
+   gentle overshoot — tactile without being rubbery. */
+.press {
+  transition: transform .35s cubic-bezier(.34, 1.4, .64, 1),
+              box-shadow .2s ease, background-color .2s ease,
+              border-color .2s ease;
+}
+.press:active {
+  transform: scale(.96);
+  transition-duration: .1s;
+  transition-timing-function: ease-out;
+}
+.tap { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.lift:hover { transform: translateY(-2px); }
+
+/* ── Eyebrow label (small uppercase tracked — used sparingly) ── */
+.eyebrow {
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
-.text-glow-red {
-  color: var(--cyber-red);
-  font-weight: 600;
+/* ── Pill buttons (ported from design prototype) ── */
+.pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-size: 14px; font-weight: 560; letter-spacing: -0.01em;
+  padding: 10px 18px; cursor: pointer; white-space: nowrap;
+  transition: transform .35s cubic-bezier(.34, 1.4, .64, 1),
+              background-color .2s, border-color .2s, box-shadow .2s,
+              color .2s, filter .2s;
+}
+.pill:active {
+  transform: scale(.96);
+  transition-duration: .1s;
+  transition-timing-function: ease-out;
+}
+.pill svg { width: 17px; height: 17px; }
+.pill-primary {
+  background: var(--blue); border-color: var(--blue); color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--blue) 35%, transparent);
+}
+.pill-primary:hover { filter: brightness(1.06); }
+.pill-gold {
+  background: var(--gold); border-color: var(--gold); color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--gold) 35%, transparent);
+}
+.pill-gold:hover { filter: brightness(1.06); }
+.pill-ghost { background: transparent; border-color: var(--border); }
+.pill-ghost:hover { background: var(--surface-2); }
+.pill-soft { background: var(--surface-2); border-color: transparent; }
+.pill-soft:hover { background: var(--surface-3); }
+.pill-sm { padding: 7px 14px; font-size: 13px; }
+.pill-sm svg { width: 14px; height: 14px; }
+.pill:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Inset surface (search fields, soft wells) ── */
+.inset {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-input);
 }
 
-.glow-green {
-  box-shadow: 0 0 0 1px rgba(139, 140, 248, 0.12), 0 4px 16px rgba(139, 140, 248, 0.06);
+/* ── Segmented control ── */
+.seg {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-pill);
+  padding: 4px;
+  gap: 2px;
 }
+.seg button {
+  border: none; background: transparent; color: var(--text-2);
+  font: inherit; font-size: 13px; font-weight: 540;
+  padding: 6px 14px; border-radius: var(--r-pill);
+  cursor: pointer; transition: .18s; white-space: nowrap;
+}
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+[data-theme="dark"] .seg button.on { background: var(--surface-3); }
 
-.glow-red {
-  box-shadow: 0 0 0 1px rgba(251, 113, 133, 0.12), 0 4px 16px rgba(251, 113, 133, 0.06);
+/* ── Toggle switch (ported from design prototype) ── */
+.switch {
+  width: 46px; height: 28px; border-radius: 999px;
+  background: var(--surface-3);
+  position: relative; cursor: pointer;
+  transition: background-color .25s;
+  border: none; flex: none; padding: 0;
 }
+.switch.on { background: var(--green); }
+.switch i {
+  position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  transition: transform .25s cubic-bezier(.2,.8,.2,1);
+}
+.switch.on i { transform: translateX(18px); }
+
+/* ── Progress track ── */
+.track { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.track i {
+  display: block; height: 100%; border-radius: 999px; background: var(--gold);
+  transition: width .8s cubic-bezier(.2,.7,.2,1);
+}
+.track.blue i  { background: var(--blue); }
+.track.green i { background: var(--green); }
 
 /* ════════════════════════════════════════════════════════════════
-   ANIMATIONS
+   ANIMATIONS — state, feedback, and one hero sheen. Nothing louder.
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Soft Pulse ── */
+/* Status dot — gentle, slow */
 @keyframes hud-pulse {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+  50%      { opacity: 0.45; }
 }
-.hud-dot {
-  animation: hud-pulse 2.5s ease-in-out infinite;
-}
+.hud-dot { animation: hud-pulse 2.5s ease-in-out infinite; }
+.status-blip { animation: hud-pulse 2s ease-in-out infinite; }
 
-/* ── Shimmer Loading Skeleton ── */
+/* Loading skeleton */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
 .cyber-skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--cyber-surface-alt) 25%,
-    var(--cyber-border) 37%,
-    var(--cyber-surface-alt) 63%
-  );
+  background: linear-gradient(90deg,
+    var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.6s ease infinite;
-  border-radius: var(--cyber-radius);
+  border-radius: var(--r-input);
 }
 
-/* ── Status Blip ── */
-@keyframes status-blip {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
-}
-.status-blip {
-  animation: status-blip 1.5s ease-in-out infinite;
-}
-
-/* ── Smooth Fade In (for page/section transitions) ── */
+/* Page/section fade-in */
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out both;
-}
+.animate-fade-in { animation: fade-in 0.4s ease-out both; }
 
-/* ── Glassmorphism Utilities ── */
+/* Continuous gentle float — dock and hero badges only */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+.floaty { animation: floaty 4s ease-in-out infinite; }
+
+/* ── Glass (theme-aware translucency) ── */
 .glass {
-  background: rgba(0, 0, 0, 0.20);
-  backdrop-filter: blur(40px) saturate(1.3);
-  -webkit-backdrop-filter: blur(40px) saturate(1.3);
+  background: var(--topbar-bg);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
 }
 .glass-surface {
-  background: rgba(19, 19, 22, 0.45);
-  backdrop-filter: blur(32px) saturate(1.2);
-  -webkit-backdrop-filter: blur(32px) saturate(1.2);
+  background: var(--dock-bg);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
 }
 .glass-card {
-  background: rgba(19, 19, 22, 0.35);
-  backdrop-filter: blur(24px) saturate(1.15);
-  -webkit-backdrop-filter: blur(24px) saturate(1.15);
+  background: var(--surface);
+  border-color: var(--border);
 }
 
-/* ── Neon Static Border ──
- *  Architecture: outer wrapper (overflow-hidden, p-[2px]) →
- *    solid neon background layer →
- *    inner solid box (masks the center, content lives here).
- *  The 2px padding gap between outer and inner = visible border.
- */
+/* ── Legacy holo/neon hooks — neutralized to quiet equivalents ── */
+.holo-sheen { position: relative; }
+.holo-sheen::after { content: none; }
+.holo-card-perspective { perspective: none; }
+.holo-card { transition: transform .14s cubic-bezier(.2,.7,.2,1); }
+.holo-sheen-dynamic, .holo-glow-border { display: none; }
 
-/* ── Holographic Sheen (mousemove-driven via CSS custom props) ── */
-.holo-sheen {
-  position: relative;
-  overflow: hidden;
-}
-.holo-sheen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.03) 40%,
-    rgba(255, 255, 255, 0.06) 50%,
-    rgba(255, 255, 255, 0.03) 60%,
-    transparent 80%
-  );
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-.holo-sheen:hover::after {
-  opacity: 1;
-}
+.ai-core-btn { animation: none; }
+.ai-sparkle { position: relative; }
+.ai-sparkle::before { content: none; }
 
-/* ── 3D Holographic Card (mouse-driven tilt) ── */
-.holo-card-perspective {
-  perspective: 600px;
-}
+.liquid-neon-cyan  { background: var(--blue);  animation: none; box-shadow: none; }
+.liquid-neon-gold  { background: var(--gold);  animation: none; box-shadow: none; }
+.milestone-glow    { border-color: var(--gold) !important; box-shadow: 0 0 0 3px var(--gold-soft); animation: none; }
 
-.holo-card {
-  transform-style: preserve-3d;
-  transition: transform 0.1s ease-out;
-  will-change: transform;
-}
-
-/* ── Holographic Sheen — Dynamic (positioned via JS) ── */
-.holo-sheen-dynamic {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: inherit;
-}
-
-.holo-card:hover .holo-sheen-dynamic {
-  opacity: 1;
-}
-
-/* ── Glowing Inner Border (mouse-proximity driven) ── */
-.holo-glow-border {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  border: 1px solid transparent;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.holo-card:hover .holo-glow-border {
-  border-color: rgba(139, 140, 248, 0.15);
-  box-shadow: inset 0 0 20px rgba(139, 140, 248, 0.05);
-}
-
-/* ── AI Core Button — Neon Pulse Glow ── */
-@keyframes ai-core-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 8px rgba(139, 140, 248, 0.25),
-      0 0 20px rgba(139, 140, 248, 0.10);
-  }
-  50% {
-    box-shadow:
-      0 0 14px rgba(139, 140, 248, 0.45),
-      0 0 36px rgba(139, 140, 248, 0.20),
-      0 0 60px rgba(139, 140, 248, 0.06);
-  }
-}
-.ai-core-btn {
-  animation: ai-core-pulse 2.5s ease-in-out infinite;
-}
-
-/* ── AI-Generated Transaction Sparkle ── */
-@keyframes ai-sparkle-border {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.ai-sparkle {
-  position: relative;
-}
-.ai-sparkle::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    rgba(96, 165, 250, 0.30),
-    rgba(139, 140, 248, 0.20),
-    rgba(96, 165, 250, 0.05),
-    rgba(139, 140, 248, 0.30)
-  );
-  background-size: 300% 300%;
-  animation: ai-sparkle-border 4s ease infinite;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* ── Dashboard Depth-of-Field (when chat is open) ── */
+/* ── Dashboard depth-of-field (chat open) ── */
 .dashboard-dof {
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
               filter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: center top;
 }
 .dashboard-dof--active {
-  transform: scale(0.95);
-  filter: blur(8px) brightness(0.7);
-}
-
-/* ── Liquid Neon Progress Bar ── */
-@keyframes liquid-flow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.liquid-neon-cyan {
-  background: linear-gradient(
-    90deg,
-    #60A5FA,
-    #818CF8,
-    #60A5FA,
-    #38BDF8,
-    #60A5FA
-  );
-  background-size: 300% 100%;
-  animation: liquid-flow 3s ease infinite;
-  box-shadow:
-    0 0 8px rgba(96, 165, 250, 0.40),
-    0 0 16px rgba(96, 165, 250, 0.15);
-}
-
-.liquid-neon-gold {
-  background: linear-gradient(
-    90deg,
-    #FBBF24,
-    #F59E0B,
-    #FBBF24,
-    #FCD34D,
-    #FBBF24
-  );
-  background-size: 300% 100%;
-  animation: liquid-flow 3s ease infinite;
-  box-shadow:
-    0 0 8px rgba(251, 191, 36, 0.40),
-    0 0 16px rgba(251, 191, 36, 0.15);
-}
-
-/* ── Milestone Glow (goal >= 100% complete) ── */
-@keyframes milestone-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 12px rgba(251, 191, 36, 0.15),
-      0 0 30px rgba(251, 191, 36, 0.08);
-  }
-  50% {
-    box-shadow:
-      0 0 20px rgba(251, 191, 36, 0.30),
-      0 0 50px rgba(251, 191, 36, 0.12),
-      0 0 80px rgba(251, 191, 36, 0.04);
-  }
-}
-.milestone-glow {
-  animation: milestone-pulse 3s ease-in-out infinite;
-  border-color: rgba(251, 191, 36, 0.20) !important;
+  transform: scale(0.97);
+  filter: blur(6px) saturate(.9);
 }
 
 /* ════════════════════════════════════════════════════════════════
-   SCROLLBAR — Minimal, near-invisible
+   BENTO + HERO
    ════════════════════════════════════════════════════════════════ */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+
+/* Mobile-first: single column stack. Tablet pairs the secondary
+   cards (hero and cash flow stay full-width). Desktop restores the
+   full 12-column bento. Breakpoints match Tailwind md/lg.
+   NOTE: cells are named `cell-N`, NOT `col-N` — Tailwind v4 ships
+   its own `col-8` utility (grid-column: 8, a line number) and emits
+   it whenever the literal class appears in markup, fighting these
+   rules in the cascade. */
+.bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.bento > * { min-width: 0; }
+.cell-3, .cell-4, .cell-5, .cell-6, .cell-7, .cell-8, .cell-9, .cell-12 {
+  grid-column: 1 / -1;
 }
+
+@media (min-width: 768px) {
+  .bento { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .cell-8, .cell-9, .cell-12 { grid-column: span 2; }
+  .cell-3, .cell-4, .cell-5, .cell-6, .cell-7 { grid-column: span 1; }
+}
+
+@media (min-width: 1024px) {
+  .bento { grid-template-columns: repeat(12, 1fr); }
+  .cell-3 { grid-column: span 3; } .cell-4 { grid-column: span 4; }
+  .cell-5 { grid-column: span 5; } .cell-6 { grid-column: span 6; }
+  .cell-7 { grid-column: span 7; } .cell-8 { grid-column: span 8; }
+  .cell-9 { grid-column: span 9; } .cell-12 { grid-column: span 12; }
+}
+
+/* Blue gradient hero with layered lighting */
+.hero-blue {
+  position: relative; overflow: hidden; color: #fff; border: none;
+  background:
+    radial-gradient(120% 140% at 8% -20%, #3b73c4 0%, rgba(59,115,196,0) 46%),
+    radial-gradient(90% 120% at 100% 120%, #16356b 0%, rgba(22,53,107,0) 55%),
+    linear-gradient(146deg, #2a5fb0 0%, #224f93 50%, #1b3f78 100%);
+  box-shadow:
+    0 24px 60px rgba(27,58,107,.32),
+    0 6px 16px rgba(27,58,107,.18),
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -40px 80px rgba(8,20,45,.30);
+}
+[data-theme="dark"] .hero-blue {
+  background:
+    radial-gradient(120% 140% at 8% -20%, #2f63ad 0%, rgba(47,99,173,0) 46%),
+    radial-gradient(90% 120% at 100% 120%, #0d1f3f 0%, rgba(13,31,63,0) 55%),
+    linear-gradient(146deg, #244e8c 0%, #1b3c70 52%, #122a52 100%);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -40px 80px rgba(0,0,0,.4);
+}
+
+/* Moving sheen highlight */
+.hero-blue .sheen {
+  position: absolute; top: -40%; left: -30%; width: 70%; height: 180%;
+  background: linear-gradient(100deg,
+    transparent 0%, rgba(255,255,255,.10) 45%, rgba(255,255,255,.16) 50%,
+    rgba(255,255,255,.10) 55%, transparent 100%);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  animation: sheen 7s ease-in-out infinite;
+}
+@keyframes sheen {
+  0%, 100% { left: -40%; opacity: 0; }
+  45%, 55% { opacity: 1; }
+  70%      { left: 120%; opacity: 0; }
+}
+
+/* Ambient bloom behind the hero card — lives on the wrapping grid
+   cell (the card itself clips at overflow:hidden). Pure gradient,
+   no filter, so it stays cheap to paint. */
+.hero-glow { position: relative; }
+.hero-glow::before {
+  content: "";
+  position: absolute;
+  inset: 4% -4% -12% -4%; /* x-bleed stays under the 16px shell padding */
+  /* light: soft pastel aura — blue carries, a whisper of green */
+  background:
+    radial-gradient(55% 60% at 28% 66%,
+      color-mix(in srgb, var(--blue) 16%, transparent), transparent 70%),
+    radial-gradient(46% 52% at 80% 44%,
+      color-mix(in srgb, var(--green) 9%, transparent), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+[data-theme="dark"] .hero-glow::before {
+  /* dark: two-blob mesh glow — blue + green at ~30% */
+  background:
+    radial-gradient(58% 64% at 24% 68%,
+      color-mix(in srgb, var(--blue) 30%, transparent), transparent 70%),
+    radial-gradient(48% 56% at 82% 40%,
+      color-mix(in srgb, var(--green) 20%, transparent), transparent 70%);
+}
+
+/* Glass controls on blue */
+.on-blue-glass {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.20);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.on-blue-glass:hover { background: rgba(255,255,255,.24); }
+.badge-on-blue {
+  background: rgba(255,255,255,.17);
+  color: #fff;
+  backdrop-filter: blur(2px);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   FLOATING DOCK — primary navigation (ported from design prototype)
+   ════════════════════════════════════════════════════════════════ */
+.dockwrap {
+  position: fixed; left: 0; right: 0; bottom: 22px; z-index: 40;
+  display: flex; justify-content: center;
+  pointer-events: none; padding: 0 16px;
+}
+.dock {
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--dock-bg);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 1px solid var(--hair);
+  border-radius: var(--r-pill);
+  padding: 8px;
+  box-shadow: var(--shadow-dock);
+  max-width: 100%;
+}
+.dock .di {
+  position: relative; width: 44px; height: 44px; flex: none;
+  border: none; background: transparent; border-radius: 14px;
+  display: grid; place-items: center;
+  color: var(--text-2); cursor: pointer;
+  transition: transform .16s cubic-bezier(.2,.7,.2,1),
+              background-color .2s, color .2s;
+}
+.dock .di svg { width: 21px; height: 21px; }
+.dock .di:hover { background: var(--surface-2); color: var(--text); transform: translateY(-3px); }
+.dock .di:active { transform: scale(.9); }
+.dock .di.on { color: var(--text); }
+.dock .di.on::after {
+  content: ""; position: absolute; bottom: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--blue);
+}
+.dock .di .tip {
+  position: absolute; bottom: 54px; left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--text); color: var(--surface);
+  font-size: 11.5px; font-weight: 560; padding: 5px 9px;
+  border-radius: 8px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: .16s;
+  box-shadow: var(--shadow);
+}
+.dock .di:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0); }
+.dock .sepr { width: 1px; height: 26px; background: var(--hair); margin: 0 3px; flex: none; }
+.dock .di.ai {
+  background: linear-gradient(150deg, var(--blue), var(--blue-ink));
+  color: #fff; width: 46px; height: 46px;
+}
+.dock .di.ai:hover { color: #fff; filter: brightness(1.08); }
+.dock .di.add { background: var(--gold); color: #fff; width: 46px; height: 46px; }
+.dock .di.add:hover { color: #fff; filter: brightness(1.06); }
+.dock-scroll {
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; scrollbar-width: none;
+  min-width: 0; /* let the nav strip shrink inside the flex capsule */
+}
+.dock-scroll::-webkit-scrollbar { display: none; }
+@media (max-width: 760px) {
+  .dockwrap { bottom: 14px; }
+  .dock .di { width: 40px; height: 40px; }
+  .dock .di .tip { display: none; }
+}
+
+/* ── Reduced motion: kill all decorative loops ── */
+@media (prefers-reduced-motion: reduce) {
+  .floaty, .hud-dot, .status-blip, .cyber-skeleton { animation: none; }
+  .hero-blue .sheen { display: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SCROLLBARS
+   ════════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--cyber-border);
-  border-radius: 9999px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--cyber-text-muted);
-}
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: content-box; }
 
-/* ── Hide scrollbar ── */
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ── Subtle scrollbar for horizontal carousels ── */
-.subtle-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-}
-.subtle-scrollbar::-webkit-scrollbar {
-  height: 3px;
-}
-.subtle-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.subtle-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 9999px;
-}
-.subtle-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
+.subtle-scrollbar { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
+.subtle-scrollbar::-webkit-scrollbar { height: 3px; }
+.subtle-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.subtle-scrollbar::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 9999px; }

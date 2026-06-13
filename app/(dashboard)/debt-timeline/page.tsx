@@ -1,18 +1,24 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════════════
+// Debts — matches the design prototype (page_debts.jsx):
+// page head + pill-primary add button, summary card (green paid-off
+// ring + total remaining + min/month + account count), then one tile
+// per debt: tinted icon, due-day gold badge, remaining/min figures,
+// and a green paid-off track. Add/delete Supabase flows unchanged.
+// The prototype's "ชำระเงิน" button is omitted — no payment flow
+// exists in the backend yet; no dead buttons.
+// ═══════════════════════════════════════════════════════════════════
+
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CreditCard, Plus, X, Save, Trash2, Loader2, AlertCircle,
-  TrendingDown, Calendar, Percent, DollarSign,
+  CreditCard, Plus, X, Save, Trash2, Loader2,
 } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import CyberCard from '@/components/ui/CyberCard';
-import SectionHeader from '@/components/ui/SectionHeader';
-import ScrambleText from '@/components/ui/ScrambleText';
-import { useMagnetic } from '@/hooks/useMagnetic';
+import Ring from '@/components/ui/Ring';
 import { useAuth } from '@/hooks/useAuth';
 import { useDebts } from '@/hooks/useDebts';
 import { createDebt, deleteDebt, formatSupabaseError } from '@/lib/supabase/queries';
@@ -20,20 +26,11 @@ import { formatCurrency } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// ── Magnetic row wrapper ──
-function MagneticRow({ children, className }: { children: React.ReactNode; className?: string }) {
-  const mag = useMagnetic(0.12);
-  return (
-    <motion.div
-      style={{ x: mag.x, y: mag.y }}
-      onMouseMove={mag.onMouseMove}
-      onMouseLeave={mag.onMouseLeave}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
+// debts have no stored color — cycle a quiet palette for icon tints
+const DEBT_COLORS = ['#b7892f', '#1f4287', '#5b6b86', '#8a6d57'];
+
+const inputCls =
+  'w-full rounded-[14px] border border-(--border) bg-(--surface-2) px-3.5 py-2.5 text-sm text-(--text) outline-none transition-[border-color,box-shadow] focus:border-(--blue) focus:shadow-[0_0_0_3px_var(--blue-soft)] placeholder:text-(--text-3)';
 
 export default function DebtTimelinePage() {
   const { user } = useAuth();
@@ -50,31 +47,25 @@ export default function DebtTimelinePage() {
   const [newMinPayment, setNewMinPayment] = useState('');
   const [newDueDay, setNewDueDay] = useState('');
 
-  const totalDebt = useMemo(() => debts.reduce((s, d) => s + d.remaining_amount, 0), [debts]);
-  const totalMinPayment = useMemo(() => debts.reduce((s, d) => s + (d.minimum_payment ?? 0), 0), [debts]);
+  const totalRemain = useMemo(() => debts.reduce((s, d) => s + d.remaining_amount, 0), [debts]);
+  const totalMin = useMemo(() => debts.reduce((s, d) => s + (d.minimum_payment ?? 0), 0), [debts]);
+  const totalOrig = useMemo(() => debts.reduce((s, d) => s + d.total_amount, 0), [debts]);
+  const paidPct = totalOrig > 0 ? Math.round(((totalOrig - totalRemain) / totalOrig) * 100) : 0;
 
-  // ── GSAP stagger ──
+  // ── Stagger reveal ──
   useGSAP(
     () => {
       if (!pageRef.current || loading) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const rows = gsap.utils.toArray<HTMLElement>('.debt-row', pageRef.current);
       if (rows.length === 0) return;
-      gsap.set(rows, { y: 25, opacity: 0 });
-      gsap.to(rows, {
-        y: 0, opacity: 1, duration: 0.45, ease: 'power3.out', stagger: 0.08,
-        scrollTrigger: { trigger: pageRef.current, start: 'top 85%', once: true },
-      });
+      gsap.fromTo(rows,
+        { y: 25, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.45, ease: 'power3.out', stagger: 0.08, delay: 0.05 }
+      );
     },
     { scope: pageRef, dependencies: [loading, debts] }
   );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <Loader2 className="w-7 h-7 text-[var(--cyber-green)] animate-spin" />
-      </div>
-    );
-  }
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,106 +109,109 @@ export default function DebtTimelinePage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="cyber-skeleton h-16 w-1/3 rounded-2xl" />
+        <div className="cyber-skeleton h-32 rounded-3xl" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="cyber-skeleton h-56 rounded-3xl" />
+          <div className="cyber-skeleton h-56 rounded-3xl" />
+          <div className="cyber-skeleton h-56 rounded-3xl" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div ref={pageRef} className="flex flex-col h-full space-y-6 pb-20 lg:pb-6">
-      {/* ── Header ── */}
-      <div className="shrink-0 flex items-center justify-between">
+    <div ref={pageRef} className="flex flex-col gap-4">
+      {/* ── Page head ── */}
+      <div className="mb-1 mt-1.5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-red)] hud-dot" />
-            <span className="text-[10px] tracking-[3px] text-[var(--cyber-red)] font-mono uppercase">DEBT MANAGEMENT</span>
-          </div>
-          <h1 className="text-2xl font-bold text-[var(--cyber-text)]">แผนชำระหนี้</h1>
+          <h1 className="text-[25px] font-semibold leading-[1.1] tracking-[-0.025em] text-(--text) lg:text-[30px]">
+            หนี้สิน
+          </h1>
+          <p className="mt-1 text-[14.5px] text-(--text-2)">ปลดหนี้ทีละก้อน อย่างมีแผน</p>
         </div>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 rounded-xl bg-[var(--cyber-red)]/10 text-[var(--cyber-red)] border border-[var(--cyber-red)]/20 px-4 py-2 hover:bg-[var(--cyber-red)]/20 transition-all text-sm font-mono uppercase shrink-0"
+          className={`press tap shrink-0 ${isAdding ? 'pill pill-ghost' : 'pill pill-primary'}`}
         >
-          {isAdding ? <X size={16} /> : <Plus size={16} />}
+          {isAdding ? <X /> : <Plus />}
           {isAdding ? 'ยกเลิก' : 'เพิ่มหนี้'}
         </button>
       </div>
 
-      {/* ── Hero: Total Debt ── */}
-      <CyberCard glow variant="danger" className="p-6">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-red)] animate-pulse" />
-          <span className="text-[11px] tracking-[3px] text-[var(--cyber-red)] font-mono uppercase">
-            TOTAL OUTSTANDING DEBT
-          </span>
-        </div>
-        <ScrambleText
-          text={formatCurrency(totalDebt)}
-          duration={600}
-          className="text-4xl md:text-5xl font-bold font-mono text-[var(--cyber-red)]"
-        />
-        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-white/[0.06]">
-          <div className="flex items-center gap-2">
-            <TrendingDown size={14} className="text-[var(--cyber-amber)]" />
-            <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-wider">Min Monthly</span>
-            <ScrambleText
-              text={formatCurrency(totalMinPayment)}
-              duration={400}
-              delay={200}
-              className="text-sm font-mono font-bold text-[var(--cyber-amber)]"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <CreditCard size={14} className="text-[var(--cyber-text-secondary)]" />
-            <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-wider">Accounts</span>
-            <span className="text-sm font-mono font-bold text-[var(--cyber-text)]">{debts.length}</span>
+      {/* ── Summary card ── */}
+      {debts.length > 0 && (
+        <div className="debt-row rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+          <div className="flex flex-wrap items-center justify-between gap-5">
+            <div className="flex items-center gap-[18px]">
+              <Ring pct={paidPct} color="var(--green)">
+                <span className="tnum text-lg font-bold tracking-[-0.01em] text-(--text)">{paidPct}%</span>
+              </Ring>
+              <div>
+                <p className="eyebrow">หนี้คงเหลือรวม</p>
+                <p className="tnum mt-1 text-[30px] font-bold leading-none tracking-[-0.025em] text-(--expense)">
+                  {formatCurrency(totalRemain)}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-[30px]">
+              <div>
+                <p className="text-xs text-(--text-3)">ขั้นต่ำ/เดือน</p>
+                <p className="tnum mt-1 text-[22px] font-bold text-(--text)">{formatCurrency(totalMin)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-(--text-3)">จำนวนบัญชี</p>
+                <p className="tnum mt-1 text-[22px] font-bold text-(--text)">{debts.length}</p>
+              </div>
+            </div>
           </div>
         </div>
-      </CyberCard>
+      )}
 
       {/* ── Add form ── */}
       <AnimatePresence>
         {isAdding && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <form onSubmit={handleAdd} className="glass-card border border-white/[0.06] rounded-2xl p-4 flex flex-col gap-4">
-              <h2 className="text-[var(--cyber-text)] text-sm font-mono uppercase border-b border-white/[0.06] pb-2">เพิ่มหนี้ใหม่</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--cyber-text-secondary)] font-mono uppercase">ชื่อหนี้</label>
+            <form onSubmit={handleAdd} className="flex flex-col gap-4 rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+              <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">เพิ่มหนี้ใหม่</h2>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">ชื่อหนี้</label>
                   <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
-                    placeholder="เช่น สินเชื่อบ้าน SCB"
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-red)]/40 transition-all" required />
+                    placeholder="เช่น สินเชื่อบ้าน SCB" className={inputCls} required />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--cyber-text-secondary)] font-mono uppercase">ยอดรวม (฿)</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">ยอดรวม (฿)</label>
                   <input type="number" value={newTotal} onChange={(e) => setNewTotal(e.target.value)}
-                    placeholder="0.00"
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-red)]/40 font-mono" required />
+                    placeholder="0.00" className={`${inputCls} tnum`} required />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--cyber-text-secondary)] font-mono uppercase">ยอดคงเหลือ (฿)</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">ยอดคงเหลือ (฿)</label>
                   <input type="number" value={newRemaining} onChange={(e) => setNewRemaining(e.target.value)}
-                    placeholder="เท่ากับยอดรวม"
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-red)]/40 font-mono" />
+                    placeholder="เท่ากับยอดรวม" className={`${inputCls} tnum`} />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--cyber-text-secondary)] font-mono uppercase">ดอกเบี้ย (%/ปี)</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">ดอกเบี้ย (%/ปี)</label>
                   <input type="number" step="0.1" value={newRate} onChange={(e) => setNewRate(e.target.value)}
-                    placeholder="0.0"
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-red)]/40 font-mono" />
+                    placeholder="0.0" className={`${inputCls} tnum`} />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--cyber-text-secondary)] font-mono uppercase">ยอดจ่ายขั้นต่ำ (฿)</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">ยอดจ่ายขั้นต่ำ (฿)</label>
                   <input type="number" value={newMinPayment} onChange={(e) => setNewMinPayment(e.target.value)}
-                    placeholder="0.00"
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-red)]/40 font-mono" />
+                    placeholder="0.00" className={`${inputCls} tnum`} />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[var(--cyber-text-secondary)] font-mono uppercase">วันครบกำหนด (วันที่)</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">วันครบกำหนด (วันที่)</label>
                   <input type="number" min={1} max={31} value={newDueDay} onChange={(e) => setNewDueDay(e.target.value)}
-                    placeholder="1-31"
-                    className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-red)]/40 font-mono" />
+                    placeholder="1-31" className={`${inputCls} tnum`} />
                 </div>
               </div>
-              <div className="flex justify-end border-t border-white/[0.06] pt-3">
-                <button type="submit" disabled={saving}
-                  className="flex items-center gap-2 rounded-xl bg-[var(--cyber-red)] text-white px-6 py-2 text-sm font-mono font-bold uppercase shadow-[0_0_15px_rgba(251,113,133,0.25)] hover:opacity-80 transition-all disabled:opacity-50">
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} บันทึก
+              <div className="flex justify-end border-t border-(--border-2) pt-4">
+                <button type="submit" disabled={saving} className="pill pill-primary press tap">
+                  {saving ? <Loader2 className="animate-spin" /> : <Save />} บันทึก
                 </button>
               </div>
             </form>
@@ -225,96 +219,93 @@ export default function DebtTimelinePage() {
         )}
       </AnimatePresence>
 
-      {/* ── Debt list ── */}
-      <SectionHeader title="DEBT ACCOUNTS" subtitle={`${debts.length} รายการ`} accent />
-
-      <div className="flex flex-col gap-3">
-        {debts.map((debt) => {
-          const paidPct = debt.total_amount > 0
-            ? ((debt.total_amount - debt.remaining_amount) / debt.total_amount) * 100
-            : 0;
-
-          return (
-            <MagneticRow key={debt.id} className="debt-row">
-              <CyberCard noPadding className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {/* Left: Icon + Info */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[var(--cyber-red)]/10 flex items-center justify-center shrink-0">
-                      <CreditCard size={18} className="text-[var(--cyber-red)]" />
+      {/* ── Debt tiles ── */}
+      {debts.length === 0 && !isAdding ? (
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-(--border) bg-(--surface) py-12">
+          <span className="mb-3 text-3xl">🎉</span>
+          <p className="text-sm font-medium text-(--green)">ปลอดหนี้!</p>
+          <p className="mt-1 text-xs text-(--text-3)">กด &quot;เพิ่มหนี้&quot; หากต้องการเริ่มติดตามหนี้สิน</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {debts.map((debt, i) => {
+            const color = DEBT_COLORS[i % DEBT_COLORS.length];
+            const pct = debt.total_amount > 0
+              ? Math.round(((debt.total_amount - debt.remaining_amount) / debt.total_amount) * 100)
+              : 0;
+            return (
+              <div
+                key={debt.id}
+                className="debt-row press flex flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow) transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-(--shadow-lg)"
+              >
+                {/* Header */}
+                <div className="mb-4 flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[13px]"
+                      style={{ background: `color-mix(in srgb, ${color} 16%, transparent)`, color }}
+                    >
+                      <CreditCard size={20} />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-bold text-[var(--cyber-text)] truncate">{debt.name}</h3>
-                      <div className="flex items-center gap-3 mt-1">
-                        {debt.interest_rate != null && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--cyber-amber)]">
-                            <Percent size={10} /> {debt.interest_rate}%
-                          </span>
-                        )}
-                        {debt.due_day != null && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--cyber-text-secondary)]">
-                            <Calendar size={10} /> วันที่ {debt.due_day}
-                          </span>
-                        )}
-                        {debt.minimum_payment != null && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--cyber-text-secondary)]">
-                            <DollarSign size={10} /> ขั้นต่ำ {formatCurrency(debt.minimum_payment)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Balance + Delete */}
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="text-right">
-                      <p className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-wider">คงเหลือ</p>
-                      <p className="text-lg font-mono font-bold text-[var(--cyber-red)]">
-                        {formatCurrency(debt.remaining_amount)}
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[15.5px] font-semibold text-(--text)">{debt.name}</h3>
+                      <p className="text-xs text-(--text-3)">
+                        {debt.interest_rate != null ? `ดอกเบี้ย ${debt.interest_rate}%` : 'ไม่มีดอกเบี้ย'}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleDelete(debt.id)}
-                      className="p-2 rounded-lg text-[var(--cyber-text-muted)] hover:text-[var(--cyber-red)] hover:bg-[var(--cyber-red)]/10 transition-all"
-                    >
-                      <Trash2 size={14} />
-                    </button>
                   </div>
+                  <button
+                    onClick={() => handleDelete(debt.id)}
+                    title="ลบ"
+                    aria-label="ลบหนี้"
+                    className="press tap flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-(--text-3) transition-colors hover:bg-(--red-soft) hover:text-(--red)"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
 
-                {/* Progress bar */}
-                <div className="mt-3 pt-3 border-t border-white/[0.06]">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-wider">
-                      ชำระแล้ว {paidPct.toFixed(1)}%
-                    </span>
-                    <span className="text-[9px] font-mono text-[var(--cyber-text-muted)]">
-                      {formatCurrency(debt.total_amount - debt.remaining_amount)} / {formatCurrency(debt.total_amount)}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-r from-[var(--cyber-red)] to-[var(--cyber-amber)]"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${paidPct}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-                    />
-                  </div>
-                </div>
-              </CyberCard>
-            </MagneticRow>
-          );
-        })}
+                {debt.due_day != null && (
+                  <span className="mb-4 inline-flex w-fit items-center rounded-full bg-(--gold-soft) px-2.5 py-1 text-[11px] font-semibold text-(--gold)">
+                    ครบกำหนดทุกวันที่ {debt.due_day}
+                  </span>
+                )}
 
-        {debts.length === 0 && (
-          <div className="py-12 flex flex-col items-center justify-center border border-dashed border-white/[0.08] rounded-2xl glass-card">
-            <AlertCircle className="text-[var(--cyber-text-muted)] mb-2" size={24} />
-            <p className="text-[var(--cyber-text-secondary)] text-sm font-mono uppercase tracking-wide">
-              ไม่มีหนี้ — กด &quot;เพิ่มหนี้&quot; เพื่อเริ่มติดตาม
-            </p>
-          </div>
-        )}
-      </div>
+                {/* Figures */}
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="eyebrow">คงเหลือ</p>
+                    <p className="tnum mt-1 text-[26px] font-bold leading-none tracking-[-0.02em] text-(--expense)">
+                      {formatCurrency(debt.remaining_amount)}
+                    </p>
+                  </div>
+                  {debt.minimum_payment != null && (
+                    <div className="text-right">
+                      <p className="eyebrow">ขั้นต่ำ</p>
+                      <p className="tnum mt-1 text-[16px] font-semibold leading-none text-(--text)">
+                        {formatCurrency(debt.minimum_payment)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Paid-off track */}
+                <div className="mt-4">
+                  <div className="mb-[7px] flex items-center justify-between">
+                    <span className="text-xs text-(--text-3)">ชำระแล้ว</span>
+                    <span className="tnum text-[12.5px] font-semibold text-(--green)">{pct}%</span>
+                  </div>
+                  <div className="track green">
+                    <i style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="tnum mt-1.5 text-right text-[11px] text-(--text-3)">
+                    {formatCurrency(debt.total_amount - debt.remaining_amount)} / {formatCurrency(debt.total_amount)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

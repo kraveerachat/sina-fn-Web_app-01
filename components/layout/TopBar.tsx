@@ -1,128 +1,269 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// TopBar — Holographic Glassmorphism Header + Mobile Drawer
+// TopBar — translucent sticky header (matches design prototype)
 //
-// Utopia Tokyo §2:
-//  ✓ Solid header background removed → glass backdrop-blur-2xl
-//  ✓ Mobile drawer uses glassmorphism
-//  ✓ Notification button has subtle glow
+// Brand logo + Sina_FN on the left, time-of-day greeting with
+// the user's name, then theme toggle / notifications / avatar on
+// the right. Navigation lives in the FloatingDock, not here.
 // ═══════════════════════════════════════════════════════════════════
 
-import { getGreeting } from '@/lib/utils';
-import {
-  Bell, Menu, LayoutDashboard, History, Bot,
-  Target, Wallet, TrendingUp, CreditCard,
-  Receipt, Calculator, Settings, X,
-} from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import Portal from '@/components/ui/Portal';
-
-const navItems = [
-  { href: '/', label: 'DASHBOARD', icon: LayoutDashboard },
-  { href: '/history', label: 'HISTORY', icon: History },
-  { href: '/ai-chat', label: 'AI CHAT', icon: Bot },
-  { href: '/goals', label: 'GOALS', icon: Target },
-  { href: '/wallets', label: 'WALLETS', icon: Wallet },
-  { href: '/net-worth', label: 'NET WORTH', icon: TrendingUp },
-  { href: '/debt-timeline', label: 'DEBTS', icon: CreditCard },
-  { href: '/monthly-bills', label: 'BILLS', icon: Receipt },
-  { href: '/tax-planning', label: 'TAX', icon: Calculator },
-  { href: '/settings', label: 'SETTINGS', icon: Settings },
-];
+import { getGreeting } from '@/lib/utils';
+import { Bell, Settings, Wallet, History, LogOut, CheckCheck } from 'lucide-react';
+import ThemeToggle from '@/components/layout/ThemeToggle';
+import { useAppStore } from '@/store/appStore';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function TopBar() {
   const greeting = getGreeting();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const pathname = usePathname();
+  const userProfile = useAppStore((s) => s.userProfile);
+  const name = userProfile?.nickname || userProfile?.name || '';
+  
+  const { user, signOut } = useAuth();
+  const avatarUrl = user?.user_metadata?.avatar_url || null;
+  const userName = user?.user_metadata?.nickname || user?.user_metadata?.name || name || 'Sina User';
+  const userEmail = user?.email || '';
+
+  // Dropdown States
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(3);
+
+  // Refs for click outside detection
+  const bellRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (bellRef.current && !bellRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkAllRead = () => {
+    setUnreadCount(0);
+  };
+
+  const mockNotifications = [
+    {
+      id: 1,
+      icon: '💰',
+      text: 'ยินดีต้อนรับสู่ Sina_FN! เริ่มต้นบันทึกรายรับรายจ่ายได้เลย',
+      time: 'เมื่อสักครู่',
+      unread: unreadCount > 0,
+    },
+    {
+      id: 2,
+      icon: '☁️',
+      text: 'ซิงค์ข้อมูลกับระบบ Supabase สำเร็จแล้ว',
+      time: '5 นาทีที่แล้ว',
+      unread: unreadCount > 0,
+    },
+    {
+      id: 3,
+      icon: '🤖',
+      text: 'คลิกปุ่มแชทด้านล่างเพื่อพิมพ์คุยกับ AI บันทึกรายการ',
+      time: '10 นาทีที่แล้ว',
+      unread: unreadCount > 0,
+    },
+  ];
 
   return (
-    <>
-      {/* ── Desktop / Mobile Header — glassmorphism ── */}
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/[0.06] px-4 lg:px-8 glass">
-        {/* Left — hamburger (mobile) + greeting */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] text-[var(--cyber-text-secondary)] hover:bg-white/[0.04] lg:hidden transition-colors"
-          >
-            <Menu size={18} />
-          </button>
-          <div>
-            <p className="text-sm text-[var(--cyber-text)] font-medium">{greeting}</p>
-            <p className="text-[10px] font-mono tracking-[2px] text-[var(--cyber-text-muted)]">
-              PERSONAL FINANCE HUD
-            </p>
-          </div>
+    <header className="glass sticky top-0 z-30 border-b border-(--hair)">
+      <div className="mx-auto flex max-w-[1180px] items-center gap-3.5 px-4 py-3 lg:px-6">
+        {/* ── Brand ── */}
+        <div className="flex items-center gap-2">
+          <Link href="/" className="press tap flex items-center justify-center">
+            <img 
+              src="/logo-sn.png" 
+              alt="Sina_FN Logo" 
+              className="h-[36px] w-[36px] object-contain transition-transform duration-200 hover:scale-105" 
+            />
+          </Link>
+          <span className="text-[17px] font-semibold tracking-[-0.02em] text-(--text)">
+            Sina_FN
+          </span>
         </div>
 
-        {/* Right — notification + avatar */}
+        {/* ── Greeting ── */}
+        <p className="hidden whitespace-nowrap text-[13.5px] text-(--text-2) sm:block">
+          {greeting}
+          {userName && (
+            <>
+              {', '}
+              <b className="font-semibold text-(--text)">{userName}</b>
+            </>
+          )}
+        </p>
+
+        <div className="flex-1" />
+
+        {/* ── Controls ── */}
         <div className="flex items-center gap-3">
-          <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] text-[var(--cyber-text-secondary)] hover:bg-white/[0.04] transition-colors">
-            <Bell size={16} />
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[var(--cyber-green)] hud-dot" />
-          </button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20">
-            <span className="text-xs font-bold text-[var(--cyber-green)]">SN</span>
-          </div>
-        </div>
-      </header>
+          <ThemeToggle />
 
-      {/* ── Mobile drawer — glassmorphism (Portal to escape stacking contexts) ── */}
-      <Portal lockScroll={mobileOpen}>
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[100] h-[100dvh] w-screen lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute left-0 top-0 h-full w-[280px] glass border-r border-white/[0.06] flex flex-col animate-in slide-in-from-left-full duration-300">
-            {/* Header */}
-            <div className="flex h-16 items-center justify-between border-b border-white/[0.06] px-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--cyber-green)]">
-                  <span className="text-sm font-black text-[#09090B]">S</span>
-                </div>
-                <span className="text-sm font-bold tracking-[3px] text-[var(--cyber-text)]">SINA_FN</span>
-              </div>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--cyber-text-muted)] hover:bg-white/[0.04]"
-              >
-                <X size={18} />
-              </button>
-            </div>
+          {/* ── Notifications Bell ── */}
+          <div className="relative flex" ref={bellRef}>
+            <button
+              onClick={() => {
+                setShowNotifications(!showNotifications);
+                setShowProfileMenu(false);
+              }}
+              aria-label="Notifications"
+              className={`press tap relative flex h-10 w-10 items-center justify-center rounded-full border border-(--border) bg-(--surface) text-(--text-2) transition-colors hover:bg-(--surface-2) hover:text-(--text) ${
+                showNotifications ? 'bg-(--surface-2) text-(--text)' : ''
+              }`}
+            >
+              <Bell size={16} />
+              {unreadCount > 0 && (
+                <span className="absolute right-2 top-[7px] h-2 w-2 rounded-full border-2 border-(--surface) bg-(--gold)" />
+              )}
+            </button>
 
-            {/* Nav */}
-            <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs tracking-[2px] transition-all',
-                      isActive
-                        ? 'bg-[var(--cyber-green)]/8 text-[var(--cyber-green)] border border-[var(--cyber-green)]/15'
-                        : 'text-[var(--cyber-text-muted)] hover:bg-white/[0.04] hover:text-[var(--cyber-text)] border border-transparent'
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="absolute right-0 top-12 w-80 rounded-2xl border border-(--border) bg-(--surface) p-4 shadow-(--shadow-lg) z-50 text-left"
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-(--text)">การแจ้งเตือน</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="flex items-center gap-1 text-xs font-medium text-(--blue) hover:opacity-80 transition-opacity"
+                      >
+                        <CheckCheck size={13} />
+                        อ่านทั้งหมด
+                      </button>
                     )}
-                  >
-                    <Icon size={16} className={isActive ? 'text-[var(--cyber-green)]' : 'text-[var(--cyber-text-muted)]'} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </aside>
+                  </div>
+
+                  <div className="flex flex-col gap-2.5 max-h-64 overflow-y-auto subtle-scrollbar">
+                    {mockNotifications.map((notif) => (
+                      <div
+                        key={notif.id}
+                        className={`flex items-start gap-3 rounded-xl p-2 transition-colors ${
+                          notif.unread ? 'bg-(--surface-2)' : ''
+                        }`}
+                      >
+                        <span className="text-lg mt-0.5">{notif.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12.5px] font-medium leading-snug text-(--text) break-words">
+                            {notif.text}
+                          </p>
+                          <p className="mt-1 text-[11px] text-(--text-3)">{notif.time}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ── User Profile Avatar ── */}
+          <div className="relative flex" ref={profileRef}>
+            <button
+              onClick={() => {
+                setShowProfileMenu(!showProfileMenu);
+                setShowNotifications(false);
+              }}
+              aria-label="Profile menu"
+              className="press tap flex h-[38px] w-[38px] items-center justify-center rounded-full border border-(--border) bg-(--surface-3) overflow-hidden shadow-sm hover:border-(--blue) transition-colors"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-sm font-semibold text-(--text)">
+                  {(userName || 'S').trim().charAt(0).toUpperCase()}
+                </span>
+              )}
+            </button>
+
+            <AnimatePresence>
+              {showProfileMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  className="absolute right-0 top-12 w-64 rounded-2xl border border-(--border) bg-(--surface) p-3 shadow-(--shadow-lg) z-50 text-left"
+                >
+                  {/* User Profile Header */}
+                  <div className="flex items-center gap-3 border-b border-(--border-2) pb-3 mb-2 px-1">
+                    <div className="grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-(--blue) to-(--blue-ink) text-base font-semibold text-white">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="avatar" className="h-full w-full object-cover" />
+                      ) : (
+                        (userName || 'S').trim().charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-(--text)">
+                        {userName}
+                      </p>
+                      <p className="truncate text-[11.5px] text-(--text-3)">
+                        {userEmail || 'ไม่มีอีเมล'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Menu Options */}
+                  <div className="flex flex-col gap-0.5">
+                    <Link
+                      href="/settings"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-(--text-2) hover:bg-(--surface-2) hover:text-(--text) transition-colors"
+                    >
+                      <Settings size={14} />
+                      ตั้งค่าโปรไฟล์
+                    </Link>
+                    <Link
+                      href="/wallets"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-(--text-2) hover:bg-(--surface-2) hover:text-(--text) transition-colors"
+                    >
+                      <Wallet size={14} />
+                      กระเป๋าเงินของฉัน
+                    </Link>
+                    <Link
+                      href="/history"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-(--text-2) hover:bg-(--surface-2) hover:text-(--text) transition-colors"
+                    >
+                      <History size={14} />
+                      ประวัติธุรกรรม
+                    </Link>
+                    
+                    <div className="h-px bg-(--border-2) my-1.5" />
+                    
+                    <button
+                      onClick={signOut}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium text-(--expense) hover:bg-(--red-soft) hover:text-(--red) transition-colors"
+                    >
+                      <LogOut size={14} />
+                      ออกจากระบบ
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-      )}
-      </Portal>
-    </>
+      </div>
+    </header>
   );
 }

@@ -1,13 +1,11 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// GoalGrid — Wealth Galaxy 3D Savings Goal Cards
+// GoalGrid — savings goal cards on clean surfaces
 //
-// Utopia Tokyo Phase 5:
-//  ✓ Parallax image reveal with 3D holographic tilt
-//  ✓ Liquid neon progress bar with flowing gradient
-//  ✓ Premium glassmorphism (bg-black/20 backdrop-blur)
-//  ✓ Milestone glow for 100% completed goals
+// Image header, name + days-left chip, saved/target figures, and a
+// solid progress bar (blue in progress, gold when complete). Cards
+// fade up on scroll; base state stays visible.
 // ═══════════════════════════════════════════════════════════════════
 
 import { useRef } from 'react';
@@ -23,7 +21,6 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { formatCurrency } from '@/lib/utils';
-import { useHolographicTilt } from '@/hooks/useHolographicTilt';
 import type { Goal } from '@/types';
 import Image from 'next/image';
 
@@ -34,8 +31,7 @@ interface GoalGridProps {
   columns?: 'auto' | 1;
 }
 
-/** Individual Goal Card with 3D tilt + parallax image */
-function GoalCard({ goal, index }: { goal: Goal; index: number }) {
+function GoalCard({ goal }: { goal: Goal }) {
   const balance = goal.wallet?.balance || 0;
   const target = goal.target_amount;
   const rawProgress = (balance / target) * 100;
@@ -51,141 +47,102 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
 
   const daysLeft = getDaysLeft(goal.target_date);
 
-  const { ref, cardStyle, sheenStyle, glowStyle, onMouseMove, onMouseLeave } =
-    useHolographicTilt<HTMLDivElement>({
-      maxTilt: 6,
-      speed: 0.12,
-      sheenColor: isComplete
-        ? 'rgba(251, 191, 36, 0.08)'
-        : 'rgba(96, 165, 250, 0.08)',
-      glowColor: isComplete
-        ? 'rgba(251, 191, 36, 0.20)'
-        : 'rgba(96, 165, 250, 0.15)',
-    });
-
   return (
-    <div
-      className="goal-card transition-transform duration-500 hover:scale-[1.02]"
-    >
+    <div className="goal-card">
       <div
-        ref={ref}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-        style={cardStyle}
         className={`
-          group relative flex flex-col overflow-hidden rounded-2xl
-          bg-black/20 backdrop-blur-xl
-          border border-white/[0.08]
-          hover:border-white/[0.15] transition-colors
-          ${isComplete ? 'milestone-glow' : ''}
+          press tap group relative flex flex-col overflow-hidden rounded-3xl
+          border bg-(--surface) shadow-(--shadow)
+          transition-shadow duration-300 hover:shadow-(--shadow-lg)
+          ${isComplete ? 'border-(--gold)/40' : 'border-(--border)'}
         `}
       >
-        {/* Holographic overlays */}
-        <div style={sheenStyle} />
-        <div style={glowStyle} />
-
-        {/* Image Section — parallax zoom on hover */}
-        <div className="h-40 w-full relative bg-black/30 border-b border-white/[0.06] overflow-hidden">
+        {/* Image header */}
+        <div className="relative h-40 w-full overflow-hidden bg-(--surface-2)">
           {goal.image_url ? (
             <Image
               src={goal.image_url}
               alt={goal.name}
               fill
               sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               unoptimized
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <ImageIcon
-                size={32}
-                className="text-white/[0.08]"
-              />
+              <ImageIcon size={32} className="text-(--text-3)/40" />
             </div>
           )}
-          {/* Overlay gradient — fades into glass card */}
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
 
-          {/* Completion badge overlay */}
+          {/* Completion badge */}
           {isComplete && (
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/40 backdrop-blur-sm border border-[var(--cyber-amber)]/30">
-              <Trophy size={10} className="text-[var(--cyber-amber)]" />
-              <span className="text-[9px] font-mono font-bold text-[var(--cyber-amber)] uppercase tracking-wider">
-                Complete
+            <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-(--gold) px-2.5 py-1 shadow-(--shadow-sm)">
+              <Trophy size={11} className="text-white" />
+              <span className="text-[11px] font-semibold text-white">
+                สำเร็จ
               </span>
             </div>
           )}
         </div>
 
-        {/* Info Section */}
-        <div className="p-5 flex-1 flex flex-col relative z-[1]">
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-bold text-[var(--cyber-text)] line-clamp-1">
+        {/* Info */}
+        <div className="flex flex-1 flex-col p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <h3 className="line-clamp-1 text-[17px] font-semibold tracking-[-0.01em] text-(--text)">
               {goal.name}
             </h3>
             {daysLeft !== null && (
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/[0.04] rounded-md border border-white/[0.08] shrink-0">
-                <Calendar
-                  size={12}
-                  className="text-[var(--cyber-text-muted)]"
-                />
-                <span className="text-[10px] font-mono font-medium text-[var(--cyber-text-secondary)]">
-                  {daysLeft}d left
+              <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-(--border-2) bg-(--surface-2) px-2.5 py-1">
+                <Calendar size={11} className="text-(--text-3)" />
+                <span className="tnum text-[11px] font-medium text-(--text-2)">
+                  เหลือ {daysLeft} วัน
                 </span>
               </div>
             )}
           </div>
 
-          {/* Progress Tracker */}
           <div className="mt-auto space-y-3">
-            <div className="flex justify-between items-end">
+            <div className="flex items-end justify-between">
               <div>
-                <p className="text-[10px] font-mono text-[var(--cyber-text-muted)] uppercase tracking-wider mb-0.5">
-                  Saved
-                </p>
+                <p className="mb-0.5 text-[11px] text-(--text-3)">ออมแล้ว</p>
                 <p
-                  className={`text-base font-bold font-mono ${
-                    isComplete
-                      ? 'text-[var(--cyber-amber)]'
-                      : 'text-[var(--cyber-cyan)]'
+                  className={`tnum text-base font-semibold ${
+                    isComplete ? 'text-(--gold)' : 'text-(--blue)'
                   }`}
                 >
                   {formatCurrency(balance)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-mono text-[var(--cyber-text-muted)] uppercase tracking-wider mb-0.5">
-                  Target
-                </p>
-                <p className="text-sm font-bold font-mono text-[var(--cyber-text-secondary)]">
+                <p className="mb-0.5 text-[11px] text-(--text-3)">เป้าหมาย</p>
+                <p className="tnum text-sm font-medium text-(--text-2)">
                   {formatCurrency(target)}
                 </p>
               </div>
             </div>
 
-            {/* ── Liquid Neon Progress Bar ── */}
-            <div className="h-2.5 w-full bg-black/30 rounded-full overflow-hidden border border-white/[0.06]">
+            {/* Progress bar — solid fill, no neon */}
+            <div className="h-2 w-full overflow-hidden rounded-full bg-(--surface-3)">
               <motion.div
-                className={`h-full rounded-full relative ${
-                  isComplete ? 'liquid-neon-gold' : 'liquid-neon-cyan'
-                }`}
+                className="h-full rounded-full"
+                style={{
+                  backgroundColor: isComplete ? 'var(--gold)' : 'var(--blue)',
+                }}
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
-                transition={{ duration: 1.2, ease: 'easeOut' }}
+                transition={{ duration: 1, ease: [0.2, 0.7, 0.2, 1] }}
               />
             </div>
 
-            <div className="flex justify-between items-center text-[10px] font-mono text-[var(--cyber-text-muted)]">
+            <div className="flex items-center justify-between text-[11px] text-(--text-3)">
               <span
-                className={
-                  isComplete ? 'text-[var(--cyber-amber)]' : ''
-                }
+                className={`tnum font-medium ${isComplete ? 'text-(--gold)' : ''}`}
               >
                 {progress.toFixed(1)}%
               </span>
               <span className="flex items-center gap-1">
-                <WalletIcon size={10} />
-                Auto-synced
+                <WalletIcon size={11} />
+                ซิงค์กับกระเป๋าอัตโนมัติ
               </span>
             </div>
           </div>
@@ -195,38 +152,37 @@ function GoalCard({ goal, index }: { goal: Goal; index: number }) {
   );
 }
 
-export default function GoalGrid({
-  goals,
-  columns = 'auto',
-}: GoalGridProps) {
+export default function GoalGrid({ goals, columns = 'auto' }: GoalGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // ── GSAP ScrollTrigger for goal cards ──
+  // Gentle fade-up on scroll; skipped (cards stay visible) under reduced motion
   useGSAP(
     () => {
       if (!gridRef.current || goals.length === 0) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const cards = gsap.utils.toArray<HTMLElement>('.goal-card', gridRef.current);
       if (cards.length === 0) return;
-      gsap.set(cards, { y: 30, opacity: 0, scale: 0.96 });
-      gsap.to(cards, {
-        y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out', stagger: 0.1,
-        scrollTrigger: { trigger: gridRef.current, start: 'top 92%', once: true },
-      });
+      gsap.fromTo(
+        cards,
+        { y: 20, opacity: 0 },
+        {
+          y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.08,
+          scrollTrigger: { trigger: gridRef.current, start: 'top 92%', once: true },
+        }
+      );
     },
     { scope: gridRef, dependencies: [goals] }
   );
 
   if (goals.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/[0.06] bg-black/20 backdrop-blur-xl p-12 flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
-          <Target size={28} className="text-[var(--cyber-cyan)]" />
+      <div className="flex flex-col items-center justify-center rounded-3xl border border-(--border) bg-(--surface) p-12 text-center shadow-(--shadow)">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-(--blue-soft)">
+          <Target size={28} className="text-(--blue)" />
         </div>
-        <p className="text-base text-[var(--cyber-text)] font-bold">
-          No Saving Goals
-        </p>
-        <p className="text-sm text-[var(--cyber-text-muted)] mt-1">
-          Set up a target to start saving towards what you want.
+        <p className="text-base font-semibold text-(--text)">ยังไม่มีเป้าหมายออมเงิน</p>
+        <p className="mt-1 text-sm text-(--text-3)">
+          ตั้งเป้าหมายแรก แล้วเริ่มออมไปด้วยกัน
         </p>
       </div>
     );
@@ -234,13 +190,13 @@ export default function GoalGrid({
 
   const gridClass =
     columns === 1
-      ? 'grid grid-cols-1 gap-5'
-      : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5';
+      ? 'grid grid-cols-1 gap-4'
+      : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4';
 
   return (
     <div ref={gridRef} className={gridClass}>
-      {goals.map((goal, i) => (
-        <GoalCard key={goal.id} goal={goal} index={i} />
+      {goals.map((goal) => (
+        <GoalCard key={goal.id} goal={goal} />
       ))}
     </div>
   );

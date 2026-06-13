@@ -47,7 +47,7 @@ export default function SettingsModal({
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-(--scrim) backdrop-blur-sm"
             onClick={onClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -56,38 +56,30 @@ export default function SettingsModal({
 
           {/* Modal */}
           <motion.div
-            className={`relative w-full max-w-md backdrop-blur-3xl bg-[var(--cyber-bg)]/80 border ${accentBorder} rounded-none p-0 overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.3)]`}
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="relative w-full max-w-md rounded-3xl border border-(--border) bg-(--surface) shadow-(--shadow-lg) p-0 overflow-hidden"
+            initial={{ scale: 0.96, opacity: 0, y: 18 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            exit={{ scale: 0.96, opacity: 0, y: 18 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
           >
-            {/* HUD corner accents */}
-            <span className={`absolute top-0 left-0 w-3 h-3 border-t border-l ${accentBorder} pointer-events-none`} />
-            <span className={`absolute top-0 right-0 w-3 h-3 border-t border-r ${accentBorder} pointer-events-none`} />
-            <span className={`absolute bottom-0 left-0 w-3 h-3 border-b border-l ${accentBorder} pointer-events-none`} />
-            <span className={`absolute bottom-0 right-0 w-3 h-3 border-b border-r ${accentBorder} pointer-events-none`} />
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div className="flex items-center gap-3">
                 <div
-                  className="w-10 h-10 rounded-none flex items-center justify-center"
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{
-                    background: `color-mix(in srgb, ${accentColor} 15%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${accentColor} 30%, transparent)`,
+                    background: `color-mix(in srgb, ${accentColor} 14%, transparent)`,
                   }}
                 >
                   {icon}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-[var(--cyber-text)] font-mono uppercase tracking-[2px]">
+                  <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-(--text)">
                     {title}
                   </h2>
                   {subtitle && (
-                    <p className="text-[10px] font-mono text-[var(--cyber-text-muted)] uppercase tracking-wider">
-                      {subtitle}
-                    </p>
+                    <p className="text-[12px] text-(--text-3)">{subtitle}</p>
                   )}
                 </div>
               </div>
@@ -103,16 +95,6 @@ export default function SettingsModal({
             <div className="px-6 pb-6">
               {children}
             </div>
-
-            {/* Animated scan line */}
-            <motion.div
-              className="absolute top-0 left-0 right-0 h-px"
-              style={{
-                background: `linear-gradient(90deg, transparent, color-mix(in srgb, ${accentColor} 40%, transparent), transparent)`,
-              }}
-              animate={{ y: [0, 400, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-            />
           </motion.div>
         </motion.div>
       )}

@@ -9,7 +9,7 @@
 // Features implemented per spec:
 //  ✓ Custom GLSL vertex + fragment shaders (no PointsMaterial)
 //  ✓ Data-driven colour & speed:
-//      80-100 → calm neon-green (#00FF7F) waves
+//      80-100 → calm neon-green (var(--green)) waves
 //      50-79  → moderate gold/cyan blend
 //      <50    → aggressive crimson/orange pulses
 //  ✓ Mouse-trail distortion (uMouse uniform)
@@ -114,14 +114,14 @@ const fragmentShader = /* glsl */ `
     float f = fbm(st + 3.5 * r);
 
     /* ── Colour palette — health-score driven ── */
-    //  Healthy  (score 1.0) → neon green  #00FF7F + deep teal
+    //  Healthy  (score 1.0) → neon green  var(--green) + deep teal
     //  Moderate (score 0.5) → gold / cyan blend
-    //  At-risk  (score 0.0) → crimson #FF3B3B / orange #FF6A00
-    vec3 colHealthy = vec3(0.0, 1.0, 0.498);   // #00FF7F
+    //  At-risk  (score 0.0) → crimson var(--red) / orange var(--gold)
+    vec3 colHealthy = vec3(0.0, 1.0, 0.498);   // var(--green)
     vec3 colTeal    = vec3(0.0, 0.72, 0.76);    // deep teal accent
-    vec3 colGold    = vec3(1.0, 0.84, 0.0);     // #FFD600
-    vec3 colCrimson = vec3(1.0, 0.23, 0.23);    // #FF3B3B
-    vec3 colOrange  = vec3(1.0, 0.42, 0.0);     // #FF6A00
+    vec3 colGold    = vec3(1.0, 0.84, 0.0);     // var(--gold)
+    vec3 colCrimson = vec3(1.0, 0.23, 0.23);    // var(--red)
+    vec3 colOrange  = vec3(1.0, 0.42, 0.0);     // var(--gold)
 
     vec3 warm = mix(colCrimson, colOrange, clamp(f * 1.5 + 0.2, 0.0, 1.0));
     vec3 mid  = mix(colGold,   colTeal,   clamp(r.x + 0.4, 0.0, 1.0));

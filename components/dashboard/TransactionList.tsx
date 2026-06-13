@@ -1,12 +1,10 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// TransactionList — Recent Transactions with Glass Rows
+// TransactionList — recent transactions with hairline-divided rows
 //
-// Phase 6 "Analytics Matrix":
-//  ✓ Glass panel rows (bg-white/[0.02], hover border glow)
-//  ✓ Staggered vertical entry via Framer Motion
-//  ✓ AI-generated sparkle badge preserved
+// Income amounts are green; outflow stays in primary ink (quiet,
+// not alarming). AI-generated entries carry a small gold badge.
 // ═══════════════════════════════════════════════════════════════════
 
 import { motion, type Variants } from 'framer-motion';
@@ -14,7 +12,7 @@ import Link from 'next/link';
 import { formatCurrency, formatTime } from '@/lib/utils';
 import { getWalletVisuals } from '@/lib/banks';
 import WalletIconDisplay from '@/components/ui/WalletIconDisplay';
-import { Zap } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 export interface TransactionDisplay {
   id: string;
@@ -34,42 +32,53 @@ interface TransactionListProps {
 }
 
 const rowVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 12 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.06, duration: 0.35, ease: [0, 0, 0.2, 1] as [number, number, number, number] },
+    transition: {
+      delay: i * 0.05,
+      duration: 0.3,
+      ease: [0, 0, 0.2, 1] as [number, number, number, number],
+    },
   }),
 };
 
 export default function TransactionList({ transactions }: TransactionListProps) {
   return (
-    <div>
-      {/* Section label */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="cyber-label">Recent Transactions</span>
-          <div className="flex-1 h-px bg-(--cyber-border)" />
-        </div>
-        <Link href="/history" className="text-[11px] font-medium text-(--cyber-green) hover:opacity-70 transition-opacity">
-          View All
+    <div className="lift-card flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+      {/* Header */}
+      <div className="mb-2 flex items-baseline justify-between">
+        <span className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">
+          Recent Transactions
+        </span>
+        <Link
+          href="/history"
+          className="text-[13px] font-medium text-(--blue) hover:opacity-70 transition-opacity"
+        >
+          View all
         </Link>
       </div>
 
       {transactions.length === 0 ? (
-        <div className="rounded-2xl border border-white/[0.06] glass-card p-8 flex flex-col items-center justify-center text-center">
-          <span className="text-3xl mb-3">📝</span>
-          <p className="text-sm text-(--cyber-text-secondary)">No transactions yet</p>
-          <p className="text-xs text-(--cyber-text-muted) mt-1">Tap Quick Add to record your first entry</p>
+        <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+          <span className="mb-3 text-3xl">📝</span>
+          <p className="text-sm text-(--text-2)">No transactions yet</p>
+          <p className="mt-1 text-xs text-(--text-3)">
+            Tap Quick Add to record your first entry
+          </p>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="flex flex-col">
           {transactions.map((tx, i) => {
             const isIncome = tx.type === 'income';
             const isAi = tx.is_ai_generated === true;
+            const isLast = i === transactions.length - 1;
             const displayIcon = tx.emoji
               ? tx.emoji
-              : (tx.categoryName === 'ออมเงิน' || tx.categoryName === 'Savings' || tx.note.includes('ออมเงิน'))
+              : tx.categoryName === 'ออมเงิน' ||
+                  tx.categoryName === 'Savings' ||
+                  tx.note.includes('ออมเงิน')
                 ? '🎯'
                 : '💸';
 
@@ -80,35 +89,36 @@ export default function TransactionList({ transactions }: TransactionListProps) 
                 variants={rowVariants}
                 initial="hidden"
                 animate="visible"
-                className={`
-                  group flex items-center gap-3 rounded-xl p-3
-                  bg-white/[0.02] border border-transparent
-                  hover:bg-white/[0.05] hover:border-white/10
-                  transition-all duration-300 cursor-pointer
-                  ${isAi ? 'ai-sparkle' : ''}
-                `}
+                className={`flex items-center gap-3 py-3 ${
+                  isLast ? '' : 'border-b border-(--border-2)'
+                }`}
               >
-                {/* ── Bank Logo OR Category Emoji ── */}
+                {/* Bank logo or category emoji */}
                 {tx.walletType === 'bank' ? (
                   <WalletIconDisplay
                     visuals={getWalletVisuals(tx.walletName, tx.walletType)}
-                    size={40}
+                    size={38}
                   />
                 ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors border border-transparent">
-                    <span className="text-lg">{displayIcon}</span>
+                  <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-(--surface-2)">
+                    <span className="text-[17px]">{displayIcon}</span>
                   </div>
                 )}
 
-                {/* Description + category + AI badge */}
-                <div className="flex-1 min-w-0">
+                {/* Note + category + AI badge */}
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-sm text-(--cyber-text) truncate">{tx.note}</p>
+                    <p className="truncate text-sm font-medium text-(--text)">
+                      {tx.note}
+                    </p>
                     {isAi && (
-                      <Zap size={10} className="text-(--cyber-cyan) shrink-0" />
+                      <span className="flex shrink-0 items-center gap-1 rounded-full bg-(--gold-soft) px-1.5 py-px text-[10px] font-semibold text-(--gold)">
+                        <Sparkles size={9} />
+                        AI
+                      </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-(--cyber-text-muted) mt-0.5">
+                  <p className="mt-0.5 text-xs text-(--text-3)">
                     {tx.categoryName}
                   </p>
                 </div>
@@ -116,13 +126,14 @@ export default function TransactionList({ transactions }: TransactionListProps) 
                 {/* Amount + time */}
                 <div className="shrink-0 text-right">
                   <p
-                    className={`text-sm font-bold font-mono ${
-                      isIncome ? 'text-(--color-success)' : 'text-(--cyber-red)'
+                    className={`tnum text-sm font-semibold ${
+                      isIncome ? 'text-(--green)' : 'text-(--text)'
                     }`}
                   >
-                    {isIncome ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
+                    {isIncome ? '+' : '−'}
+                    {formatCurrency(Math.abs(tx.amount))}
                   </p>
-                  <p className="text-[9px] font-mono text-(--cyber-text-muted) mt-0.5">
+                  <p className="mt-0.5 text-[11px] text-(--text-3)">
                     {formatTime(tx.transaction_date)}
                   </p>
                 </div>

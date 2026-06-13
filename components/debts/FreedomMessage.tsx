@@ -31,17 +31,17 @@ const FreedomMessage = forwardRef<HTMLDivElement>((_, ref) => {
       className="freedom-message flex flex-col items-center justify-center gap-6 opacity-0"
     >
       {/* Icon */}
-      <div className="w-20 h-20 rounded-full bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/30 flex items-center justify-center shadow-[0_0_40px_var(--cyber-green-glow)]">
+      <div className="w-20 h-20 rounded-full bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/30 flex items-center justify-center shadow-none">
         <ShieldCheck size={36} className="text-[var(--cyber-green)]" />
       </div>
 
       {/* Main title */}
-      <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-mono text-center text-[var(--cyber-green)] tracking-wider leading-tight drop-shadow-[0_0_30px_var(--cyber-green-glow)]">
+      <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tnum text-center text-[var(--cyber-green)] tracking-wider leading-tight drop-shadow-none">
         {displayText}
       </h1>
 
       {/* Subtitle */}
-      <p className="text-sm md:text-base font-mono text-[var(--cyber-green)]/60 uppercase tracking-[6px]">
+      <p className="text-sm md:text-base tnum text-[var(--cyber-green)]/60 uppercase tracking-[6px]">
         All debts eliminated
       </p>
 

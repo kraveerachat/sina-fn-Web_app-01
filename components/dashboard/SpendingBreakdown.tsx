@@ -1,12 +1,10 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// SpendingBreakdown — Animated Donut + Interactive Legend
+// SpendingBreakdown — donut + legend on a clean surface
 //
-// Phase 6 "Analytics Matrix":
-//  ✓ Framer Motion animated stroke-dasharray draw on mount
-//  ✓ Hover legend → corresponding slice glows + scales
-//  ✓ Glassmorphism card, no solid backgrounds
+// The donut draws on; hovering a legend row thickens (not glows)
+// the matching slice. Quiet hairline dividers between rows.
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
@@ -21,35 +19,43 @@ interface SpendingBreakdownProps {
   donutSegments: DonutSegment[];
   spendingByCategory: Record<string, number>;
   totalSpending: number;
+  /** Stack donut above legend — for narrow bento cells */
+  vertical?: boolean;
 }
 
 export default function SpendingBreakdown({
   donutSegments,
   spendingByCategory,
   totalSpending,
+  vertical = false,
 }: SpendingBreakdownProps) {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   if (totalSpending <= 0) {
     return (
-      <div className="rounded-2xl border border-white/[0.06] glass-card p-8 flex flex-col items-center justify-center min-h-[260px]">
-        <span className="text-3xl mb-3">📊</span>
-        <p className="text-sm text-(--cyber-text-secondary)">No spending this month</p>
-        <p className="text-xs text-(--cyber-text-muted) mt-1">Your category breakdown will appear here</p>
+      <div className="lift-card flex min-h-[260px] flex-col items-center justify-center rounded-3xl border border-(--border) bg-(--surface) p-8 shadow-(--shadow)">
+        <span className="mb-3 text-3xl">📊</span>
+        <p className="text-sm text-(--text-2)">No spending this month</p>
+        <p className="mt-1 text-xs text-(--text-3)">
+          Your category breakdown will appear here
+        </p>
       </div>
     );
   }
 
-  const sortedEntries = Object.entries(spendingByCategory).sort(([, a], [, b]) => b - a);
+  const sortedEntries = Object.entries(spendingByCategory).sort(
+    ([, a], [, b]) => b - a
+  );
 
-  // Recalculate segments for r=40
   const segments = donutSegments.map((seg) => ({
     ...seg,
     dashLength: (seg.value / totalSpending) * CIRCUMFERENCE,
   }));
 
-  // Recompute offsets
-  const computedSegments = segments.reduce<{ items: (typeof segments[0] & { dashOffset: number })[]; offset: number }>(
+  const computedSegments = segments.reduce<{
+    items: (typeof segments[0] & { dashOffset: number })[];
+    offset: number;
+  }>(
     (acc, seg) => {
       acc.items.push({ ...seg, dashOffset: -acc.offset });
       acc.offset += seg.dashLength;
@@ -59,19 +65,31 @@ export default function SpendingBreakdown({
   ).items;
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] glass-card p-6 min-h-[260px]">
-      <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
-        {/* ── Donut Chart ── */}
-        <div className="relative w-40 h-40 shrink-0">
-          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            {/* Background ring */}
+    <div className="lift-card h-full min-h-[260px] rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-(--shadow)">
+      {vertical && (
+        <div className="mb-2 flex items-baseline justify-between">
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">
+            Spending
+          </span>
+          <span className="text-[12.5px] text-(--text-3)">เดือนนี้</span>
+        </div>
+      )}
+      <div
+        className={
+          vertical
+            ? 'flex flex-col items-center gap-5'
+            : 'flex flex-col items-center justify-center gap-8 md:flex-row md:gap-12'
+        }
+      >
+        {/* ── Donut ── */}
+        <div className="relative h-40 w-40 shrink-0">
+          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
             <circle
               cx="50" cy="50" r={RADIUS}
               fill="none"
-              stroke="var(--cyber-surface-alt)"
+              stroke="var(--surface-3)"
               strokeWidth="8"
             />
-            {/* Data segments — animated stroke draw + interactive hover */}
             {computedSegments.map((seg, i) => {
               const isHovered = hoveredCategory === seg.category;
               return (
@@ -81,11 +99,7 @@ export default function SpendingBreakdown({
                   fill="none"
                   stroke={seg.color}
                   strokeLinecap="round"
-                  style={{
-                    filter: isHovered ? `drop-shadow(0 0 10px ${seg.color})` : 'none',
-                    cursor: 'pointer',
-                    pointerEvents: 'auto',
-                  }}
+                  style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                   initial={{
                     strokeDasharray: `0 ${CIRCUMFERENCE}`,
                     strokeDashoffset: 0,
@@ -108,58 +122,51 @@ export default function SpendingBreakdown({
             })}
           </svg>
 
-          {/* Center text — pointer-events-none so SVG slices remain hoverable */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-[9px] text-(--cyber-text-muted) uppercase tracking-widest">
+          {/* Center total */}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[10px] tracking-[0.04em] text-(--text-3)">
               Total
             </span>
-            <span className="text-xl font-bold font-mono text-(--cyber-text) mt-0.5">
+            <span className="tnum mt-0.5 text-xl font-semibold text-(--text)">
               {formatCurrency(totalSpending)}
             </span>
           </div>
         </div>
 
-        {/* ── Legend List ── */}
-        <div className="w-full md:w-1/2 flex flex-col">
+        {/* ── Legend ── */}
+        <div className={vertical ? 'flex w-full flex-col' : 'flex w-full flex-col md:w-1/2'}>
           {sortedEntries.map(([cat, val], i) => {
             const pct = Math.round((val / totalSpending) * 100);
-            const color = computedSegments.find((s) => s.category === cat)?.color ?? '#71717A';
+            const color =
+              computedSegments.find((s) => s.category === cat)?.color ??
+              'var(--text-3)';
             const isLast = i === sortedEntries.length - 1;
             const isHovered = hoveredCategory === cat;
 
             return (
               <div
                 key={cat}
-                className={`flex items-center justify-between py-2.5 transition-all duration-200 rounded-lg px-2 -mx-2 cursor-pointer ${
-                  isLast ? '' : 'border-b border-white/5'
-                } ${isHovered ? 'bg-white/[0.04]' : ''}`}
+                className={`-mx-2 flex cursor-pointer items-center justify-between rounded-xl px-2 py-2.5 transition-colors duration-200 ${
+                  isLast ? '' : 'border-b border-(--border-2)'
+                } ${isHovered ? 'bg-(--surface-2)' : ''}`}
                 onMouseEnter={() => setHoveredCategory(cat)}
                 onMouseLeave={() => setHoveredCategory(null)}
               >
-                {/* Left: dot + name */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full shrink-0 transition-shadow duration-200"
-                    style={{
-                      backgroundColor: color,
-                      boxShadow: isHovered ? `0 0 8px ${color}` : 'none',
-                    }}
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: color }}
                   />
-                  <span className={`text-sm font-medium truncate transition-colors duration-200 ${
-                    isHovered ? 'text-(--cyber-text)' : 'text-(--cyber-text)'
-                  }`}>
+                  <span className="truncate text-sm font-medium text-(--text)">
                     {cat}
                   </span>
                 </div>
 
-                {/* Right: percent + amount */}
-                <div className="flex items-center gap-4 shrink-0">
-                  <span className="text-xs text-(--cyber-text-muted) w-8 text-right">
+                <div className="flex shrink-0 items-center gap-4">
+                  <span className="w-8 text-right text-xs text-(--text-3)">
                     {pct}%
                   </span>
-                  <span className={`text-sm font-semibold font-mono w-24 text-right transition-colors duration-200 ${
-                    isHovered ? 'text-(--cyber-text)' : 'text-(--cyber-text)'
-                  }`}>
+                  <span className="tnum w-24 text-right text-sm font-semibold text-(--text)">
                     {formatCurrency(val)}
                   </span>
                 </div>

@@ -136,7 +136,7 @@ export default function WipeDataModal({
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-(--scrim) backdrop-blur-sm"
             onClick={handleClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -145,7 +145,7 @@ export default function WipeDataModal({
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-md backdrop-blur-3xl bg-red-950/40 border border-red-500/50 rounded-none p-0 overflow-hidden shadow-[0_0_60px_rgba(239,68,68,0.15)]"
+            className="relative w-full max-w-md backdrop-blur-3xl bg-red-950/40 border border-red-500/50 rounded-xl p-0 overflow-hidden shadow-none"
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -160,14 +160,14 @@ export default function WipeDataModal({
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-6 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-none bg-red-500/20 border border-red-500/30 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center">
                   <AlertTriangle size={20} className="text-red-400" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-red-300 font-mono uppercase tracking-[2px]">
+                  <h2 className="text-base font-bold text-red-300 font-medium tracking-[0.04em]">
                     DANGER ZONE
                   </h2>
-                  <p className="text-[10px] font-mono text-red-400/60 uppercase tracking-wider">
+                  <p className="text-[10px] font-mono text-red-400/60 ">
                     STEP {stepNum} OF 3 — IDENTITY VERIFICATION
                   </p>
                 </div>
@@ -192,7 +192,7 @@ export default function WipeDataModal({
                 const isDone = i + 1 < stepNum;
                 return (
                   <React.Fragment key={i}>
-                    <div className={`w-6 h-6 rounded-none border flex items-center justify-center ${
+                    <div className={`w-6 h-6 rounded-xl border flex items-center justify-center ${
                       isDone
                         ? 'border-green-500/60 text-green-400 bg-green-500/10'
                         : isActive
@@ -231,7 +231,7 @@ export default function WipeDataModal({
                       placeholder="รหัสผ่านบัญชี"
                       autoFocus
                       onKeyDown={(e) => e.key === 'Enter' && handlePasswordVerify()}
-                      className="w-full rounded-none border bg-black/30 px-4 py-3 text-sm font-mono text-red-200 placeholder-red-500/30 outline-none transition-all border-red-500/30 focus:border-red-400 focus:shadow-[0_0_12px_rgba(239,68,68,0.2)]"
+                      className="w-full rounded-xl border bg-(--surface-2) px-4 py-3 text-sm font-mono text-red-200 placeholder-red-500/30 outline-none transition-all border-red-500/30 focus:border-red-400 shadow-none"
                     />
                   </motion.div>
                 )}
@@ -260,7 +260,7 @@ export default function WipeDataModal({
                           key={i}
                           className={`w-4 h-4 rounded-full transition-all ${
                             i < pin.length
-                              ? 'bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+                              ? 'bg-red-400 shadow-none'
                               : 'bg-red-900/40 border border-red-500/20'
                           }`}
                         />
@@ -274,7 +274,7 @@ export default function WipeDataModal({
                           key={i}
                           onClick={() => handlePinKey(key)}
                           disabled={key === '' || loading}
-                          className={`h-11 flex items-center justify-center rounded-none text-base font-mono transition-all ${
+                          className={`h-11 flex items-center justify-center rounded-xl text-base font-mono transition-all ${
                             key === ''
                               ? 'opacity-0'
                               : key === 'DEL'
@@ -304,7 +304,7 @@ export default function WipeDataModal({
                       ข้อมูลจะ<span className="text-red-300 font-bold">ไม่สามารถกู้คืนได้</span>
                     </p>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-mono text-red-400/80 uppercase tracking-[2px]">
+                      <label className="text-[10px] font-mono text-red-400/80 uppercase tracking-[0.04em]">
                         พิมพ์ &quot;{CONFIRM_WORD}&quot; เพื่อยืนยัน
                       </label>
                       <input
@@ -315,7 +315,7 @@ export default function WipeDataModal({
                         disabled={loading}
                         autoFocus
                         onKeyDown={(e) => e.key === 'Enter' && handleFinalConfirm()}
-                        className="w-full rounded-none border bg-black/30 px-4 py-3 text-sm font-mono text-red-200 placeholder-red-500/30 outline-none transition-all disabled:opacity-50 border-red-500/30 focus:border-red-400 focus:shadow-[0_0_12px_rgba(239,68,68,0.2)]"
+                        className="w-full rounded-xl border bg-(--surface-2) px-4 py-3 text-sm font-mono text-red-200 placeholder-red-500/30 outline-none transition-all disabled:opacity-50 border-red-500/30 focus:border-red-400 shadow-none"
                       />
                     </div>
                   </motion.div>
@@ -340,7 +340,7 @@ export default function WipeDataModal({
               <button
                 onClick={handleClose}
                 disabled={loading}
-                className="flex-1 py-3 rounded-none border border-white/10 bg-white/5 text-sm font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px] hover:bg-white/10 transition-all disabled:opacity-30"
+                className="flex-1 py-3 rounded-xl border border-(--border) bg-(--surface-2) text-sm font-medium text-(--text-2) hover:bg-(--surface-3) transition-all disabled:opacity-30"
               >
                 ยกเลิก
               </button>
@@ -348,7 +348,7 @@ export default function WipeDataModal({
                 <button
                   onClick={handlePasswordVerify}
                   disabled={!password.trim() || loading}
-                  className="flex-1 py-3 rounded-none border border-red-500/30 bg-red-600/20 text-sm font-mono text-red-300 uppercase tracking-[2px] flex items-center justify-center gap-2 hover:bg-red-600/30 transition-all disabled:opacity-30"
+                  className="flex-1 py-3 rounded-xl border border-red-500/30 bg-red-600/20 text-sm font-mono text-red-300 uppercase tracking-[0.04em] flex items-center justify-center gap-2 hover:bg-red-600/30 transition-all disabled:opacity-30"
                 >
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
                   ยืนยันรหัสผ่าน
@@ -359,7 +359,7 @@ export default function WipeDataModal({
                   onClick={handleFinalConfirm}
                   disabled={!isConfirmed || loading}
                   whileTap={isConfirmed && !loading ? { scale: 0.97 } : undefined}
-                  className="flex-1 py-3 rounded-none border font-mono text-sm uppercase tracking-[2px] flex items-center justify-center gap-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-red-600/80 border-red-500/50 text-white hover:bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                  className="flex-1 py-3 rounded-xl border font-mono text-sm uppercase tracking-[0.04em] flex items-center justify-center gap-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-red-600/80 border-red-500/50 text-white hover:bg-red-500 shadow-none"
                 >
                   {loading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   {loading ? 'กำลังลบ...' : 'ยืนยันการลบ'}

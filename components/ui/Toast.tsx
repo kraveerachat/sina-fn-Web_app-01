@@ -1,12 +1,13 @@
 'use client';
 
 // ─────────────────────────────────────────────────────────────────
-// ToastProvider — Cyberpunk Toast Notification Renderer
+// ToastProvider — quiet toast notifications
 //
 // Add <ToastProvider /> once in your layout (e.g. dashboard/layout.tsx).
 // Then call useToast().toast() from any component.
 //
-// Design: bottom-right, 90-degree corners, neon glow matching type.
+// Design: bottom-right, clean surface with hairline border, tinted
+// icon circle per type, thin auto-dismiss progress line.
 // ─────────────────────────────────────────────────────────────────
 
 import { AnimatePresence, motion } from 'framer-motion';
@@ -16,44 +17,28 @@ import { cn } from '@/lib/utils';
 
 const toastConfig: Record<
   ToastType,
-  {
-    icon: React.ReactNode;
-    accentColor: string;
-    glowClass: string;
-    labelClass: string;
-  }
+  { icon: React.ReactNode; iconClass: string; barClass: string }
 > = {
   success: {
-    icon:       <Check size={13} />,
-    accentColor:'border-l-[var(--cyber-green)]',
-    glowClass:  'shadow-[0_0_16px_var(--cyber-green-glow)]',
-    labelClass: 'text-[var(--cyber-green)]',
+    icon: <Check size={13} />,
+    iconClass: 'bg-(--green-soft) text-(--green)',
+    barClass: 'bg-(--green)',
   },
   error: {
-    icon:       <X size={13} />,
-    accentColor:'border-l-[var(--cyber-red)]',
-    glowClass:  'shadow-[0_0_16px_var(--cyber-red-glow)]',
-    labelClass: 'text-[var(--cyber-red)]',
+    icon: <X size={13} />,
+    iconClass: 'bg-(--red-soft) text-(--red)',
+    barClass: 'bg-(--red)',
   },
   warning: {
-    icon:       <AlertTriangle size={13} />,
-    accentColor:'border-l-[var(--cyber-amber)]',
-    glowClass:  'shadow-[0_0_16px_var(--cyber-amber-glow)]',
-    labelClass: 'text-[var(--cyber-amber)]',
+    icon: <AlertTriangle size={13} />,
+    iconClass: 'bg-(--gold-soft) text-(--gold)',
+    barClass: 'bg-(--gold)',
   },
   info: {
-    icon:       <Info size={13} />,
-    accentColor:'border-l-[var(--cyber-border)]',
-    glowClass:  '',
-    labelClass: 'text-[var(--cyber-text-secondary)]',
+    icon: <Info size={13} />,
+    iconClass: 'bg-(--blue-soft) text-(--blue)',
+    barClass: 'bg-(--blue)',
   },
-};
-
-const typeLabel: Record<ToastType, string> = {
-  success: 'SUCCESS',
-  error:   'ERROR',
-  warning: 'WARN',
-  info:    'INFO',
 };
 
 export default function ToastProvider() {
@@ -74,57 +59,45 @@ export default function ToastProvider() {
               key={item.id}
               layout
               initial={{ opacity: 0, x: 48, scale: 0.96 }}
-              animate={{ opacity: 1, x: 0,  scale: 1 }}
-              exit={{    opacity: 0, x: 48, scale: 0.96 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 48, scale: 0.96 }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
               className={cn(
-                // ── Base ── 
                 'pointer-events-auto relative overflow-hidden',
-                'rounded-none',
-                'bg-[var(--cyber-surface)]',
-                'border border-[var(--cyber-border)]',
-                'border-l-2',
-                cfg.accentColor,
-                cfg.glowClass,
-                'min-w-[280px] max-w-[380px]',
+                'rounded-2xl border border-(--border) bg-(--surface)',
+                'shadow-(--shadow-lg)',
+                'min-w-[280px] max-w-[380px]'
               )}
             >
-              {/* Top-right corner accent */}
-              <span className={cn(
-                'absolute top-0 right-0 w-2.5 h-2.5',
-                'border-t border-r opacity-30 pointer-events-none',
-                cfg.labelClass.replace('text-', 'border-')
-              )} />
-
-              <div className="flex items-start gap-3 px-4 py-3">
-                {/* Type icon */}
-                <span className={cn('shrink-0 mt-0.5', cfg.labelClass)}>
+              <div className="flex items-start gap-3 px-4 py-3.5">
+                {/* Type icon in tinted circle */}
+                <span
+                  className={cn(
+                    'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
+                    cfg.iconClass
+                  )}
+                >
                   {cfg.icon}
                 </span>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className={cn('cyber-label mb-1', cfg.labelClass)}>
-                    {typeLabel[item.type]}
-                  </p>
-                  <p className="text-sm text-[var(--cyber-text)] font-mono leading-snug">
-                    {item.message}
-                  </p>
-                </div>
+                {/* Message */}
+                <p className="min-w-0 flex-1 pt-1 text-sm leading-snug text-(--text)">
+                  {item.message}
+                </p>
 
-                {/* Dismiss button */}
+                {/* Dismiss */}
                 <button
                   onClick={() => dismiss(item.id)}
-                  className="shrink-0 mt-0.5 text-[var(--cyber-text-muted)] hover:text-[var(--cyber-text)] transition-colors"
+                  className="mt-1 shrink-0 text-(--text-3) hover:text-(--text) transition-colors"
                   aria-label="Dismiss notification"
                 >
-                  <X size={12} />
+                  <X size={13} />
                 </button>
               </div>
 
-              {/* Auto-dismiss progress bar */}
+              {/* Auto-dismiss progress line */}
               <motion.div
-                className={cn('absolute bottom-0 left-0 h-[2px]', cfg.labelClass.replace('text-', 'bg-'))}
+                className={cn('absolute bottom-0 left-0 h-[2px] opacity-60', cfg.barClass)}
                 initial={{ width: '100%' }}
                 animate={{ width: '0%' }}
                 transition={{ duration: item.duration / 1000, ease: 'linear' }}

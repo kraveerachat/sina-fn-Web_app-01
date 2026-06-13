@@ -127,9 +127,9 @@ export default function DebtsPage() {
       master.to(
         laserRef.current,
         {
-          backgroundColor: '#00ff88',
+          backgroundColor: 'var(--green)',
           boxShadow:
-            '0 0 15px #00ff88, 0 0 40px rgba(0,255,136,0.4), 0 0 80px rgba(0,255,136,0.15)',
+            '0 0 15px var(--green), 0 0 40px rgba(0,255,136,0.4), 0 0 80px rgba(0,255,136,0.15)',
           duration: 0.2,
           ease: 'power2.inOut',
         },
@@ -161,16 +161,10 @@ export default function DebtsPage() {
     <>
       {/* ── Intro Header (above the scroll track) ── */}
       <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-red)] hud-dot" />
-          <span className="text-[10px] tracking-[3px] text-[var(--cyber-red)] font-mono uppercase">
-            PHASE 8 — DEBT DESTROYER
-          </span>
-        </div>
-        <h1 className="text-2xl font-bold text-[var(--cyber-text)]">
+        <h1 className="text-[28px] font-semibold tracking-[-0.025em] leading-tight text-(--text)">
           เลื่อนเพื่อทำลายหนี้ทั้งหมด
         </h1>
-        <p className="text-sm text-[var(--cyber-text-secondary)] font-mono mt-1">
+        <p className="text-sm text-[var(--cyber-text-secondary)] tnum mt-1">
           Scroll down to unleash the laser
         </p>
       </div>
@@ -229,7 +223,7 @@ export default function DebtsPage() {
             <div className="w-5 h-8 rounded-full border-2 border-[var(--cyber-red)]/40 flex items-start justify-center pt-1.5">
               <div className="w-1 h-2 rounded-full bg-[var(--cyber-red)]/60" />
             </div>
-            <span className="text-[9px] font-mono text-[var(--cyber-text-muted)] uppercase tracking-widest">
+            <span className="text-[9px] tnum text-[var(--cyber-text-muted)] ">
               Scroll
             </span>
           </div>

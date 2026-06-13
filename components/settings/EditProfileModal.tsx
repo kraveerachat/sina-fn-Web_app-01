@@ -149,7 +149,7 @@ export default function EditProfileModal({
           </div>
           <button
             onClick={() => fileRef.current?.click()}
-            className="text-[10px] font-mono text-[var(--cyber-green)]/60 uppercase tracking-[2px] hover:text-[var(--cyber-green)] transition-colors"
+            className="text-[10px] font-mono text-[var(--cyber-green)]/60 uppercase tracking-[0.04em] hover:text-[var(--cyber-green)] transition-colors"
           >
             เปลี่ยนรูปโปรไฟล์
           </button>
@@ -157,7 +157,7 @@ export default function EditProfileModal({
 
         {/* Display Name */}
         <div className="space-y-2">
-          <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px]">
+          <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[0.04em]">
             DISPLAY NAME
           </label>
           <input
@@ -165,20 +165,20 @@ export default function EditProfileModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="ชื่อที่แสดง"
-            className="w-full rounded-none border border-[var(--cyber-border)] bg-[var(--cyber-surface)] px-4 py-3 text-sm font-mono text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)] outline-none transition-all focus:border-[var(--cyber-green)]/40 focus:shadow-[0_0_12px_var(--cyber-green-glow)]"
+            className="w-full rounded-xl border border-[var(--cyber-border)] bg-[var(--cyber-surface)] px-4 py-3 text-sm font-mono text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)] outline-none transition-all focus:border-[var(--cyber-green)]/40 shadow-none"
           />
         </div>
 
         {/* Email (read-only) */}
         <div className="space-y-2">
-          <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px]">
+          <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[0.04em]">
             EMAIL (READ-ONLY)
           </label>
           <input
             type="email"
             value={currentEmail}
             readOnly
-            className="w-full rounded-none border border-[var(--cyber-border)] bg-[var(--cyber-surface-alt)] px-4 py-3 text-sm font-mono text-[var(--cyber-text-muted)] outline-none cursor-not-allowed"
+            className="w-full rounded-xl border border-[var(--cyber-border)] bg-[var(--cyber-surface-alt)] px-4 py-3 text-sm font-mono text-[var(--cyber-text-muted)] outline-none cursor-not-allowed"
           />
         </div>
 
@@ -187,14 +187,14 @@ export default function EditProfileModal({
           <button
             onClick={handleClose}
             disabled={saving}
-            className="flex-1 py-3 rounded-none border border-white/10 bg-white/5 text-sm font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px] hover:bg-white/10 transition-all disabled:opacity-30"
+            className="flex-1 py-3 rounded-xl border border-(--border) bg-(--surface-2) text-sm font-medium text-(--text-2) hover:bg-(--surface-3) transition-all disabled:opacity-30"
           >
             ยกเลิก
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 py-3 rounded-none border border-[var(--cyber-green)]/30 bg-[var(--cyber-green)]/10 text-sm font-mono text-[var(--cyber-green)] uppercase tracking-[2px] flex items-center justify-center gap-2 hover:bg-[var(--cyber-green)]/20 transition-all disabled:opacity-30"
+            className="flex-1 py-3 rounded-xl border border-[var(--cyber-green)]/30 bg-[var(--cyber-green)]/10 text-sm font-mono text-[var(--cyber-green)] uppercase tracking-[0.04em] flex items-center justify-center gap-2 hover:bg-[var(--cyber-green)]/20 transition-all disabled:opacity-30"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {saving ? 'กำลังบันทึก...' : 'บันทึก'}

@@ -1,77 +1,114 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// FloatingDock — Centered Floating Action Bar
+// FloatingDock — primary navigation capsule (matches design prototype)
+//
+// Glass capsule, fixed to the bottom. All 9 pages live here as icon
+// buttons (tooltip on hover, dot under the active page), then a
+// hairline separator, then AI (blue gradient) and Quick Add (gold).
+// Every dock item answers touch with spring physics (400/28) for a
+// tactile, slightly bouncy press. On mobile the nav strip scrolls
+// horizontally.
 //
 // Mounted in layout.tsx OUTSIDE of PageTransition / DoF containers
-// so that CSS `fixed` positioning is never broken by ancestor
-// transforms, filters, or will-change properties.
+// so `fixed` positioning is never broken by ancestor transforms.
 // ═══════════════════════════════════════════════════════════════════
 
-import { motion } from 'framer-motion';
-import { Plus, MessageSquare } from 'lucide-react';
-import { useMagnetic } from '@/hooks/useMagnetic';
+import { motion, useReducedMotion } from 'framer-motion';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  LayoutDashboard, History, Wallet, TrendingUp, Target,
+  CreditCard, Receipt, Calculator, Settings, Sparkles, Plus,
+} from 'lucide-react';
 import { useDockActions } from '@/hooks/useDockActions';
 
+const MotionLink = motion.create(Link);
+
+const SPRING = { type: 'spring', stiffness: 400, damping: 28 } as const;
+
+const NAV = [
+  { href: '/', label: 'แดชบอร์ด', icon: LayoutDashboard },
+  { href: '/history', label: 'ประวัติ', icon: History },
+  { href: '/wallets', label: 'กระเป๋าเงิน', icon: Wallet },
+  { href: '/net-worth', label: 'ความมั่งคั่งสุทธิ', icon: TrendingUp },
+  { href: '/goals', label: 'เป้าหมายออม', icon: Target },
+  { href: '/debt-timeline', label: 'หนี้สิน', icon: CreditCard },
+  { href: '/monthly-bills', label: 'บิลรายเดือน', icon: Receipt },
+  { href: '/tax-planning', label: 'ภาษี', icon: Calculator },
+  { href: '/settings', label: 'ตั้งค่า', icon: Settings },
+];
+
 export default function FloatingDock() {
-  const aiMag = useMagnetic(0.3);
-  const addMag = useMagnetic(0.2);
+  const pathname = usePathname();
+  const router = useRouter();
+  const reduced = useReducedMotion();
   const { openAiChat, openQuickAdd } = useDockActions();
 
+  // AI: bottom sheet on the dashboard, dedicated page elsewhere.
+  const handleAi = () => {
+    if (pathname === '/') openAiChat();
+    else router.push('/ai-chat');
+  };
+
+  // Quick Add modal lives on the dashboard page; opening the flag
+  // first means it is already open when the dashboard mounts.
+  const handleAdd = () => {
+    openQuickAdd();
+    if (pathname !== '/') router.push('/');
+  };
+
+  const itemMotion = reduced
+    ? {}
+    : {
+        whileHover: { y: -3 },
+        whileTap: { scale: 0.9 },
+        transition: SPRING,
+      };
+
   return (
-    <div className="fixed bottom-8 left-0 lg:left-[260px] right-0 z-[100] flex justify-center pointer-events-none">
+    <div className="dockwrap">
       <motion.div
-        initial={{ y: 60, opacity: 0, scale: 0.92 }}
+        className="dock"
+        initial={reduced ? false : { y: 40, opacity: 0, scale: 0.95 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        transition={{ delay: 0.5, type: 'spring', damping: 22, stiffness: 260 }}
-        className="
-          pointer-events-auto flex items-center gap-4 p-2
-          rounded-full border border-white/10
-          bg-black/60 backdrop-blur-2xl
-          shadow-2xl
-        "
+        transition={{ delay: 0.35, ...SPRING }}
       >
-        {/* AI Chat — magnetic hover + neon pulse */}
+        <div className="dock-scroll">
+          {NAV.map(({ href, label, icon: IconCmp }) => (
+            <MotionLink
+              key={href}
+              href={href}
+              aria-label={label}
+              className={`di tap ${pathname === href ? 'on' : ''}`}
+              {...itemMotion}
+            >
+              <IconCmp />
+              <span className="tip">{label}</span>
+            </MotionLink>
+          ))}
+        </div>
+
+        <div className="sepr" />
+
         <motion.button
-          style={{ x: aiMag.x, y: aiMag.y }}
-          onMouseMove={aiMag.onMouseMove}
-          onMouseLeave={aiMag.onMouseLeave}
-          onClick={openAiChat}
-          whileTap={{ scale: 0.95 }}
-          className="
-            flex items-center justify-center gap-2
-            rounded-full border border-(--cyber-green)/20 px-5 py-3
-            text-(--cyber-green) font-semibold text-sm
-            hover:bg-(--cyber-green)/8 hover:border-(--cyber-green)/40
-            transition-all duration-200
-            ai-core-btn
-          "
+          onClick={handleAi}
+          aria-label="AI ผู้ช่วย"
+          className={`di ai ${pathname === '/ai-chat' ? 'on' : ''}`}
+          {...itemMotion}
         >
-          <MessageSquare size={16} strokeWidth={2.5} />
-          AI
+          <Sparkles />
+          <span className="tip">AI ผู้ช่วย</span>
         </motion.button>
 
-        {/* Dock divider */}
-        <div className="w-px h-8 bg-white/10" />
-
-        {/* Quick Add — magnetic hover */}
         <motion.button
-          style={{ x: addMag.x, y: addMag.y }}
-          onMouseMove={addMag.onMouseMove}
-          onMouseLeave={addMag.onMouseLeave}
-          onClick={openQuickAdd}
-          whileTap={{ scale: 0.95 }}
-          className="
-            flex items-center justify-center gap-2
-            rounded-full bg-(--cyber-green) text-white px-6 py-3
-            font-semibold text-sm
-            shadow-[0_4px_24px_var(--cyber-green-glow)]
-            hover:shadow-[0_4px_32px_var(--cyber-green-glow-sm)]
-            hover:opacity-95 transition-all duration-200
-          "
+          onClick={handleAdd}
+          aria-label="เพิ่มรายการ"
+          className="di add"
+          {...itemMotion}
         >
-          <Plus size={16} strokeWidth={2.5} />
-          Quick Add
+          <Plus />
+          <span className="tip">เพิ่มรายการ</span>
         </motion.button>
       </motion.div>
     </div>

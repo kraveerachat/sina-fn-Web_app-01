@@ -153,7 +153,7 @@ export default function ChangePinModal({ open, onClose, userId }: ChangePinModal
                 transition={{ duration: 0.15 }}
                 className={`w-4 h-4 rounded-full transition-all ${
                   filled
-                    ? 'bg-[var(--cyber-green)] shadow-[0_0_10px_var(--cyber-green-glow)]'
+                    ? 'bg-[var(--cyber-green)] shadow-none'
                     : 'bg-[var(--cyber-surface-alt)] border border-[var(--cyber-border)]'
                 }`}
               />
@@ -180,7 +180,7 @@ export default function ChangePinModal({ open, onClose, userId }: ChangePinModal
               key={i}
               onClick={() => handleKeyPress(key)}
               disabled={key === '' || loading}
-              className={`h-14 flex items-center justify-center rounded-none text-lg font-mono transition-all ${
+              className={`h-14 flex items-center justify-center rounded-xl text-lg font-mono transition-all ${
                 key === ''
                   ? 'opacity-0 cursor-default'
                   : key === 'DEL'

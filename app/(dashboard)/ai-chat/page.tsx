@@ -1,15 +1,20 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// AI Chat Page — Agentic Intent Router Frontend
+// AI Chat — Agentic Intent Router frontend, reskinned to match the
+// design prototype (page_aichat.jsx): one chat card (messages +
+// suggestion chips + inset input with round blue send), user bubbles
+// in blue, AI bubbles on surface-2 beside a blue-gradient avatar.
 // Handles: record_transaction, add_wallet, set_budget, add_debt,
-//          query_data, general_chat
+//          add_to_goal, query_data, general_chat — logic unchanged.
 // ═══════════════════════════════════════════════════════════════════
 
 import { useState, useRef, useEffect }   from 'react';
 import { useRouter }                     from 'next/navigation';
 import { motion, AnimatePresence }        from 'framer-motion';
-import { Send, Bot, User, Loader2, Check, X, Sparkles, Wallet, PiggyBank, CreditCard, Target } from 'lucide-react';
+import {
+  Send, Loader2, Check, X, Sparkles, Wallet, PiggyBank, CreditCard, Target,
+} from 'lucide-react';
 import { formatCurrency }                from '@/lib/utils';
 import { useAuth }                       from '@/hooks/useAuth';
 import { useWallets }                    from '@/hooks/useWallets';
@@ -165,7 +170,7 @@ export default function AiChatPage() {
             role: 'ai',
             intent: 'record_transaction',
             content: txData.transactions.length > 0
-              ? `แปลงสำเร็จ! พบ ${txData.transactions.length} รายการ:`
+              ? `รับทราบ! พบ ${txData.transactions.length} รายการ ตรวจสอบก่อนบันทึกได้เลย`
               : txData.message || 'ไม่พบรายการทางการเงิน',
             parsedTransactions: txData.transactions,
             savedStatus: txData.transactions.length > 0 ? 'pending' : undefined,
@@ -291,7 +296,7 @@ export default function AiChatPage() {
         case 'record_transaction': {
           if (!msg.parsedTransactions) return;
           if (wallets.length === 0) {
-            toast('กรุณาเพิ่มกระเป๋าเงินก่อน — ไปที่หน้า Wallets', 'warning');
+            toast('กรุณาเพิ่มกระเป๋าเงินก่อน — ไปที่หน้ากระเป๋าเงิน', 'warning');
             return;
           }
 
@@ -357,7 +362,7 @@ export default function AiChatPage() {
               icon:           '📊',
               spent:          0,
               limit:          bd.amount || 0,
-              color:          '#8B8CF8',
+              color:          'var(--blue)',
               rolloverPolicy: 'reset',
               month:          now.getMonth() + 1,
               year:           now.getFullYear(),
@@ -454,287 +459,207 @@ export default function AiChatPage() {
     );
   };
 
-  // ── Helper: Get intent icon ──
+  // ── Helper: intent icon for action previews ──
   const getIntentIcon = (intent?: IntentType) => {
     switch (intent) {
-      case 'add_wallet':  return <Wallet size={14} className="text-[var(--cyber-green)]" />;
-      case 'set_budget':  return <PiggyBank size={14} className="text-[var(--cyber-green)]" />;
-      case 'add_debt':    return <CreditCard size={14} className="text-[var(--cyber-green)]" />;
-      case 'add_to_goal': return <Target size={14} className="text-[var(--cyber-green)]" />;
+      case 'add_wallet':  return <Wallet size={16} />;
+      case 'set_budget':  return <PiggyBank size={16} />;
+      case 'add_debt':    return <CreditCard size={16} />;
+      case 'add_to_goal': return <Target size={16} />;
       default:            return null;
     }
   };
 
-  // ── Helper: Get confirm button label ──
+  // ── Helper: confirm button label ──
   const getConfirmLabel = (intent?: IntentType) => {
     switch (intent) {
-      case 'record_transaction': return 'Save Transactions';
-      case 'add_wallet':         return 'Add Wallet';
-      case 'set_budget':         return 'Set Budget';
-      case 'add_debt':           return 'Add Debt';
-      case 'add_to_goal':        return 'Save to Goal';
-      default:                   return 'Confirm';
+      case 'record_transaction': return 'บันทึกรายการ';
+      case 'add_wallet':         return 'เพิ่มกระเป๋า';
+      case 'set_budget':         return 'ตั้งงบ';
+      case 'add_debt':           return 'บันทึกหนี้';
+      case 'add_to_goal':        return 'ออมเข้าเป้าหมาย';
+      default:                   return 'ยืนยัน';
     }
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px-48px)] lg:h-[calc(100vh-64px-64px)]">
-      {/* Page title */}
-      <div className="shrink-0 mb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-green)] hud-dot" />
-          <span className="cyber-label-green">AI ASSISTANT // SINA AGENT</span>
-        </div>
-        <h1 className="text-2xl font-bold text-[var(--cyber-text)]">แชทกับ AI</h1>
+    <div className="flex flex-col gap-4">
+      {/* ── Page head ── */}
+      <div className="mb-1 mt-1.5">
+        <h1 className="text-[25px] font-semibold leading-[1.1] tracking-[-0.025em] text-(--text) lg:text-[30px]">
+          AI ผู้ช่วย
+        </h1>
+        <p className="mt-1 text-[14.5px] text-(--text-2)">
+          พิมพ์ภาษาคนธรรมดา สิน่าเข้าใจและบันทึกให้
+        </p>
       </div>
 
-      {/* Message list — heavy glassmorphism container */}
-      <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-0 bg-black/40 backdrop-blur-3xl border border-white/[0.08] rounded-2xl p-4">
-        <AnimatePresence initial={false}>
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.role === 'ai' && (
-                <div className="shrink-0 w-8 h-8 bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 flex items-center justify-center rounded-lg">
-                  <Bot size={14} className="text-[var(--cyber-green)]" />
-                </div>
-              )}
-
-              <div className={`max-w-[85%] lg:max-w-[70%] ${msg.role === 'user' ? 'order-1' : ''}`}>
-                <div className={`
-                  px-4 py-3 rounded-xl
-                  ${msg.role === 'user'
-                    ? 'bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 text-[var(--cyber-text)]'
-                    : 'bg-white/[0.04] border border-white/[0.08] text-[var(--cyber-text)]'
-                  }
-                `}>
-                  {/* Intent badge for non-transaction actions */}
-                  {msg.intent && msg.intent !== 'record_transaction' && msg.intent !== 'query_data' && msg.intent !== 'general_chat' && msg.intent !== 'error' && (
-                    <div className="flex items-center gap-1.5 mb-2">
-                      {getIntentIcon(msg.intent)}
-                      <span className="text-[10px] uppercase tracking-wider text-[var(--cyber-text-muted)] font-mono">
-                        {msg.intent.replace('_', ' ')}
-                      </span>
+      {/* ── Chat card ── */}
+      <div className="flex h-[min(64vh,640px)] flex-col overflow-hidden rounded-3xl border border-(--border) bg-(--surface) shadow-(--shadow)">
+        {/* Messages */}
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className={msg.role === 'user' ? 'self-end' : 'self-start'}
+                style={{ maxWidth: msg.role === 'user' ? '78%' : '85%' }}
+              >
+                {msg.role === 'user' ? (
+                  <div className="rounded-[18px_18px_5px_18px] bg-(--blue) px-[15px] py-2.5 text-[14.5px] text-white shadow-(--shadow-sm)">
+                    {msg.content}
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2.5">
+                    {/* AI avatar */}
+                    <div className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-(--blue) to-(--blue-ink) text-white">
+                      <Sparkles size={15} />
                     </div>
-                  )}
+                    <div className="min-w-0">
+                      <div className="rounded-[18px_18px_18px_5px] bg-(--surface-2) px-[15px] py-2.5 text-[14.5px] text-(--text)">
+                        <p className="whitespace-pre-line leading-relaxed">{msg.content}</p>
+                      </div>
 
-                  <p className="text-sm whitespace-pre-line leading-relaxed">{msg.content}</p>
-
-                  {/* ── Transaction preview with animated confirmation ── */}
-                  {msg.parsedTransactions && msg.parsedTransactions.length > 0 && (
-                    <ConfirmationPreview
-                      transactions={msg.parsedTransactions}
-                      status={
-                        msg.savedStatus === 'saved' ? 'saved'
-                          : msg.savedStatus === 'cancelled' ? 'cancelled'
-                          : 'pending'
-                      }
-                      onConfirm={() => handleSave(msg.id)}
-                      onCancel={() => handleCancel(msg.id)}
-                    />
-                  )}
-
-                  {/* ── Action preview card (wallet / budget / debt) — ai-sparkle ── */}
-                  {msg.actionData && msg.savedStatus === 'pending' && (
-                    <div className="mt-3 bg-white/[0.04] border border-white/[0.08] p-3 rounded-xl ai-sparkle">
-                      {msg.intent === 'add_wallet' && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">💳</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.name}</p>
-                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">กระเป๋าเงินใหม่</p>
-                          </div>
-                          <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
-                            {formatCurrency(msg.actionData.balance || 0)}
-                          </p>
-                        </div>
+                      {/* ── Transaction preview with confirmation ── */}
+                      {msg.parsedTransactions && msg.parsedTransactions.length > 0 && (
+                        <ConfirmationPreview
+                          transactions={msg.parsedTransactions}
+                          status={
+                            msg.savedStatus === 'saved' ? 'saved'
+                              : msg.savedStatus === 'cancelled' ? 'cancelled'
+                              : 'pending'
+                          }
+                          onConfirm={() => handleSave(msg.id)}
+                          onCancel={() => handleCancel(msg.id)}
+                        />
                       )}
-                      {msg.intent === 'set_budget' && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">📊</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.category}</p>
-                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">งบประมาณรายเดือน</p>
-                          </div>
-                          <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
-                            {formatCurrency(msg.actionData.amount || 0)}
-                          </p>
-                        </div>
-                      )}
-                      {msg.intent === 'add_debt' && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">📋</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.name}</p>
-                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">
-                              {msg.actionData.interestRate && msg.actionData.interestRate > 0 ? `ดอกเบี้ย ${msg.actionData.interestRate}%` : 'ไม่มีดอกเบี้ย'}
+
+                      {/* ── Action preview card (wallet / budget / debt / goal) ── */}
+                      {msg.actionData && msg.savedStatus === 'pending' && (
+                        <div className="mt-2.5 rounded-2xl border border-(--border) bg-(--surface) p-[15px] shadow-(--shadow-sm)">
+                          <p className="eyebrow mb-2.5">ตรวจสอบก่อนบันทึก</p>
+                          <div className="flex items-center gap-3">
+                            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-(--blue-soft) text-(--blue)">
+                              {getIntentIcon(msg.intent) ?? <Sparkles size={16} />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-(--text)">
+                                {msg.actionData.name || msg.actionData.category || msg.actionData.goal_name}
+                              </p>
+                              <p className="mt-0.5 text-xs text-(--text-3)">
+                                {msg.intent === 'add_wallet' && 'กระเป๋าเงินใหม่'}
+                                {msg.intent === 'set_budget' && 'งบประมาณรายเดือน'}
+                                {msg.intent === 'add_debt' && (
+                                  msg.actionData.interestRate && msg.actionData.interestRate > 0
+                                    ? `ดอกเบี้ย ${msg.actionData.interestRate}%`
+                                    : 'ไม่มีดอกเบี้ย'
+                                )}
+                                {msg.intent === 'add_to_goal' && 'ออมเงินเข้าเป้าหมาย'}
+                              </p>
+                            </div>
+                            <p className={`tnum shrink-0 text-sm font-semibold ${
+                              msg.intent === 'add_debt' ? 'text-(--expense)' : 'text-(--green)'
+                            }`}>
+                              {msg.intent === 'add_to_goal' && '+'}
+                              {formatCurrency(
+                                msg.actionData.balance ?? msg.actionData.amount ?? 0
+                              )}
                             </p>
                           </div>
-                          <p className="text-sm font-semibold font-mono text-[var(--cyber-red)] shrink-0">
-                            {formatCurrency(msg.actionData.amount || 0)}
-                          </p>
-                        </div>
-                      )}
-                      {msg.intent === 'add_to_goal' && (
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-base shrink-0">{msg.actionData.emoji || '🎯'}</div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-[var(--cyber-text)]">{msg.actionData.goal_name}</p>
-                            <p className="text-xs text-[var(--cyber-text-muted)] mt-0.5">ออมเงินเข้าเป้าหมาย</p>
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              onClick={() => handleSave(msg.id)}
+                              className="pill pill-primary pill-sm press tap flex-1"
+                            >
+                              <Check /> {getConfirmLabel(msg.intent)}
+                            </button>
+                            <button
+                              onClick={() => handleCancel(msg.id)}
+                              className="pill pill-ghost pill-sm press tap"
+                            >
+                              ยกเลิก
+                            </button>
                           </div>
-                          <p className="text-sm font-semibold font-mono text-[var(--cyber-green)] shrink-0">
-                            +{formatCurrency(msg.actionData.amount || 0)}
-                          </p>
                         </div>
                       )}
+
+                      {/* ── Saved confirmation ── */}
+                      {msg.savedStatus === 'saved' && (
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-(--green-soft) px-3 py-1.5 text-[12.5px] font-semibold text-(--green)">
+                            <Check size={13} /> บันทึกแล้ว
+                          </span>
+                          <button
+                            onClick={() => router.push('/')}
+                            className="text-[12.5px] font-medium text-(--blue) transition-opacity hover:opacity-70"
+                          >
+                            ดูแดชบอร์ด →
+                          </button>
+                        </div>
+                      )}
+
+                      {/* ── Cancelled ── */}
+                      {msg.savedStatus === 'cancelled' && !msg.parsedTransactions && (
+                        <p className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-(--text-3)">
+                          <X size={13} /> ยกเลิกแล้ว
+                        </p>
+                      )}
                     </div>
-                  )}
-
-                  {/* ── Success card after save ── */}
-                  {msg.savedStatus === 'saved' && msg.actionData && (
-                    <div className="mt-3 bg-[var(--cyber-green)]/5 border border-[var(--cyber-green)]/20 p-3 rounded-xl">
-                      <div className="flex items-center gap-2 text-[var(--cyber-green)] text-sm font-medium">
-                        <Check size={14} />
-                        <span>
-                          {msg.intent === 'add_wallet' && `เพิ่มกระเป๋า "${msg.actionData.name || ''}" ${formatCurrency(msg.actionData.balance || 0)} แล้ว`}
-                          {msg.intent === 'set_budget' && `ตั้งงบ "${msg.actionData.category || ''}" ${formatCurrency(msg.actionData.amount || 0)} แล้ว`}
-                          {msg.intent === 'add_debt' && `บันทึกหนี้ "${msg.actionData.name || ''}" ${formatCurrency(msg.actionData.amount || 0)} แล้ว`}
-                          {msg.intent === 'add_to_goal' && `ออมเงิน ${formatCurrency(msg.actionData.amount || 0)} เข้า "${msg.actionData.goal_name || ''}" แล้ว`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── Action buttons for non-transaction intents ── */}
-                  {msg.savedStatus === 'pending' && msg.intent !== 'record_transaction' && (
-                    <div className="flex gap-2 pt-3">
-                      <button
-                        onClick={() => handleCancel(msg.id)}
-                        className="flex-1 py-2 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg bg-transparent hover:bg-white/5 text-[var(--cyber-text-muted)] transition-all"
-                      >
-                        <X size={14} /> Cancel
-                      </button>
-                      <button
-                        onClick={() => handleSave(msg.id)}
-                        className="flex-[2] py-2 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/40 text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/20 hover:border-[var(--cyber-green)] transition-all"
-                      >
-                        <Check size={14} /> {getConfirmLabel(msg.intent)}
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ── View Dashboard after save (transactions handled by ConfirmationPreview) ── */}
-                  {msg.savedStatus === 'saved' && msg.intent === 'record_transaction' && (
-                    <div className="pt-3">
-                      <button
-                        onClick={() => router.push('/')}
-                        className="w-full py-2 px-4 bg-[var(--cyber-surface)] border border-[var(--cyber-green)]/30 text-[var(--cyber-text)] hover:text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/10 hover:border-[var(--cyber-green)] rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Sparkles size={13} /> View Dashboard
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ── Saved status for wallet/budget/debt ── */}
-                  {msg.savedStatus === 'saved' && msg.intent !== 'record_transaction' && msg.actionData && (
-                    <div className="pt-3">
-                      <button
-                        onClick={() => router.push('/')}
-                        className="w-full py-2 px-4 bg-[var(--cyber-surface)] border border-[var(--cyber-green)]/30 text-[var(--cyber-text)] hover:text-[var(--cyber-green)] hover:bg-[var(--cyber-green)]/10 hover:border-[var(--cyber-green)] rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Sparkles size={13} /> View Dashboard
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ── Cancelled status for non-transaction intents ── */}
-                  {msg.savedStatus === 'cancelled' && !msg.parsedTransactions && (
-                    <div className="flex items-center gap-1.5 pt-3 text-[var(--cyber-text-muted)] text-xs font-medium">
-                      <X size={14} /> <span>ยกเลิกแล้ว (Cancelled)</span>
-                    </div>
-                  )}
-                </div>
-
-                <p className={`cyber-label mt-1 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                  {msg.timestamp.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-
-              {msg.role === 'user' && (
-                <div className="shrink-0 w-8 h-8 bg-white/[0.04] border border-white/[0.08] flex items-center justify-center order-2 rounded-lg">
-                  <User size={14} className="text-[var(--cyber-text-secondary)]" />
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* Loading indicator */}
-        {isLoading && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3">
-            <div className="w-8 h-8 bg-[var(--cyber-green)]/10 border border-[var(--cyber-green)]/20 flex items-center justify-center rounded-lg">
-              <Bot size={14} className="text-[var(--cyber-green)]" />
-            </div>
-            <div className="bg-white/[0.04] border border-white/[0.08] px-4 py-3 flex items-center gap-2 rounded-xl">
-              <Loader2 size={14} className="text-[var(--cyber-green)] animate-spin" />
-              <span className="cyber-label status-blip">กำลังวิเคราะห์...</span>
-            </div>
-          </motion.div>
-        )}
-        <div ref={chatEndRef} />
-      </div>
-
-      {/* Quick suggestion chips */}
-      {messages.length <= 1 && (
-        <div className="shrink-0 py-3">
-          <p className="cyber-label mb-2 flex items-center gap-1.5">
-            <Sparkles size={10} /> ลองพิมพ์หรือกดเลือก
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                onClick={() => handleSend(s)}
-                className="border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-xs text-[var(--cyber-text-secondary)] hover:text-[var(--cyber-green)] hover:border-[var(--cyber-green)]/30 transition-all font-mono rounded-lg"
-              >
-                &quot;{s}&quot;
-              </button>
+                  </div>
+                )}
+              </motion.div>
             ))}
-          </div>
-        </div>
-      )}
+          </AnimatePresence>
 
-      {/* Input bar */}
-      <div className="shrink-0 pt-3 border-t border-[var(--cyber-border)]">
-        <div className="flex gap-2 items-end">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="พิมพ์อะไรก็ได้... บันทึกรายจ่าย เพิ่มกระเป๋า ตั้งงบ หรือถามทั่วไป"
-            className="
-              flex-1 border border-white/[0.08] bg-white/[0.03]
-              px-4 py-3 text-sm text-[var(--cyber-text)]
-              focus:border-[var(--cyber-green)]/30 outline-none transition-all font-mono
-              placeholder-[var(--cyber-text-muted)] rounded-lg
-            "
-          />
+          {/* Loading indicator */}
+          {isLoading && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-2.5 self-start">
+              <div className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[10px] bg-gradient-to-br from-(--blue) to-(--blue-ink) text-white">
+                <Sparkles size={15} />
+              </div>
+              <div className="flex items-center gap-2 rounded-[18px_18px_18px_5px] bg-(--surface-2) px-[15px] py-2.5">
+                <Loader2 size={14} className="animate-spin text-(--blue)" />
+                <span className="text-[13px] text-(--text-2)">กำลังวิเคราะห์…</span>
+              </div>
+            </motion.div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Suggestion chips */}
+        <div className="hide-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s}
+              onClick={() => handleSend(s)}
+              className="press tap shrink-0 rounded-full border border-(--border-2) bg-(--surface-2) px-3 py-1.5 text-[12.5px] font-medium text-(--text-2) transition-colors hover:text-(--text)"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* Input bar */}
+        <div className="flex items-center gap-2.5 border-t border-(--border-2) bg-(--surface) p-3 px-4">
+          <div className="inset flex flex-1 items-center gap-2 pl-4 pr-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="ถามสิน่า หรือพิมพ์รายการใช้จ่าย…"
+              className="w-full bg-transparent py-[13px] text-[15px] text-(--text) outline-none placeholder:text-(--text-3)"
+            />
+          </div>
           <button
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
-            className="
-              flex h-[46px] w-[46px] items-center justify-center
-              bg-[var(--cyber-green)] text-[var(--cyber-bg)]
-              hover:bg-[var(--cyber-green)]/80 transition-all
-              disabled:opacity-40 disabled:cursor-not-allowed rounded-lg
-            "
+            aria-label="ส่งข้อความ"
+            className="press tap flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full bg-(--blue) text-white shadow-[0_4px_14px_color-mix(in_srgb,var(--blue)_35%,transparent)] transition-[filter] hover:brightness-108 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>

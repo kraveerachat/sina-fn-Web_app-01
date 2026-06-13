@@ -4,10 +4,9 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 // ─────────────────────────────────────────────────────────────────
-// CyberToggle — Brutalist Rectangular Toggle Switch
+// CyberToggle — Pill Switch (Apple-style)
 //
-// Design Standard: STRICT 90-DEGREE CORNERS — NO pill shape.
-// The slider is a solid neon square, not a rounded thumb.
+// Fully rounded track, white round thumb, green when active.
 //
 // Usage:
 //   <CyberToggle checked={appLock} onChange={setAppLock} />
@@ -24,25 +23,10 @@ interface CyberToggleProps {
   color?: 'green' | 'red' | 'amber';
 }
 
-const colorMap = {
-  green: {
-    track:     'bg-[var(--cyber-green-dim)] border-[var(--cyber-green)]/40',
-    thumb:     'bg-[var(--cyber-green)]',
-    glow:      'shadow-[0_0_8px_var(--cyber-green-glow-sm)]',
-    trackOff:  'bg-[var(--cyber-surface-alt)] border-[var(--cyber-border)]',
-  },
-  red: {
-    track:     'bg-[var(--cyber-red-dim)] border-[var(--cyber-red)]/40',
-    thumb:     'bg-[var(--cyber-red)]',
-    glow:      'shadow-[0_0_8px_var(--cyber-red-glow)]',
-    trackOff:  'bg-[var(--cyber-surface-alt)] border-[var(--cyber-border)]',
-  },
-  amber: {
-    track:     'bg-[var(--cyber-amber)]/20 border-[var(--cyber-amber)]/40',
-    thumb:     'bg-[var(--cyber-amber)]',
-    glow:      'shadow-[0_0_8px_var(--cyber-amber-glow)]',
-    trackOff:  'bg-[var(--cyber-surface-alt)] border-[var(--cyber-border)]',
-  },
+const onColor: Record<'green' | 'red' | 'amber', string> = {
+  green: 'bg-(--green)',
+  red:   'bg-(--red)',
+  amber: 'bg-(--gold)',
 };
 
 export default function CyberToggle({
@@ -53,8 +37,6 @@ export default function CyberToggle({
   disabled = false,
   color = 'green',
 }: CyberToggleProps) {
-  const c = colorMap[color];
-
   return (
     <div
       className={cn(
@@ -62,7 +44,6 @@ export default function CyberToggle({
         disabled && 'opacity-40 cursor-not-allowed'
       )}
     >
-      {/* Toggle track — rectangular, brutalist */}
       <button
         role="switch"
         aria-checked={checked}
@@ -70,43 +51,29 @@ export default function CyberToggle({
         disabled={disabled}
         onClick={() => !disabled && onChange(!checked)}
         className={cn(
-          'relative w-11 h-6 shrink-0',
-          'rounded-none border',
-          'transition-colors duration-200',
-          'focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--cyber-green)]',
-          checked ? cn(c.track, c.glow) : c.trackOff,
+          'relative h-7 w-[46px] shrink-0 rounded-full border-none',
+          'transition-colors duration-250',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-(--blue) focus-visible:ring-offset-2',
+          checked ? onColor[color] : 'bg-(--surface-3)',
           !disabled && 'cursor-pointer'
         )}
       >
-        {/* Sliding thumb — solid square */}
         <motion.div
-          layout
-          animate={{ x: checked ? 20 : 2 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          className={cn(
-            'absolute top-1 w-4 h-4',
-            'rounded-none',
-            checked ? c.thumb : 'bg-[var(--cyber-text-muted)]',
-          )}
+          animate={{ x: checked ? 21 : 3 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+          className="absolute top-[3px] h-[22px] w-[22px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
         />
-
-        {/* HUD tick marks */}
-        <span className="absolute top-0 left-0 w-1 h-1 border-t border-l border-current opacity-30" />
-        <span className="absolute bottom-0 right-0 w-1 h-1 border-b border-r border-current opacity-30" />
       </button>
 
-      {/* Label */}
       {(label || description) && (
         <div>
           {label && (
-            <p className="text-sm text-[var(--cyber-text)] font-medium select-none">
+            <p className="text-sm text-(--text) font-medium select-none">
               {label}
             </p>
           )}
           {description && (
-            <p className="cyber-label mt-0.5 text-[var(--cyber-text-muted)]">
-              {description}
-            </p>
+            <p className="mt-0.5 text-xs text-(--text-3)">{description}</p>
           )}
         </div>
       )}

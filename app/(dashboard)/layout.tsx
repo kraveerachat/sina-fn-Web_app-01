@@ -1,11 +1,16 @@
-import Sidebar from '@/components/layout/Sidebar';
 import TopBar from '@/components/layout/TopBar';
 import ToastProvider from '@/components/ui/Toast';
-import PulseBackground from './PulseBackground';
 import PageTransition from '@/components/layout/PageTransition';
 import FloatingDock from '@/components/dashboard/FloatingDock';
 import { DockActionsProvider } from '@/hooks/useDockActions';
 import AppLockGuard from '@/components/layout/AppLockGuard';
+
+// ═══════════════════════════════════════════════════════════════════
+// Dashboard shell — matches the design prototype:
+// sticky translucent TopBar on top, content in a centered 1180px
+// shell, and ALL navigation living in the FloatingDock at the
+// bottom. No sidebar.
+// ═══════════════════════════════════════════════════════════════════
 
 export default function DashboardLayout({
   children,
@@ -18,21 +23,14 @@ export default function DashboardLayout({
         {/* Auto-lock idle detection (side-effect only, renders nothing) */}
         <AppLockGuard />
 
-        {/* Sina Pulse — ambient particle background */}
-        <PulseBackground />
+        <TopBar />
 
-        {/* Desktop Sidebar */}
-        <Sidebar />
+        {/* Main content shell — centered, room at the bottom for the dock */}
+        <main className="mx-auto w-full max-w-[1180px] px-4 pt-4 pb-40 lg:px-6">
+          <PageTransition>{children}</PageTransition>
+        </main>
 
-        {/* Main Content Area */}
-        <div className="lg:ml-[260px] flex flex-col min-h-screen relative z-10">
-          <TopBar />
-          <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8 max-w-[1200px] w-full mx-auto">
-            <PageTransition>{children}</PageTransition>
-          </main>
-        </div>
-
-        {/* Floating Action Dock — outside PageTransition to avoid stacking context issues */}
+        {/* Floating Dock — primary navigation + AI / Quick Add */}
         <FloatingDock />
 
         {/* Toast Notification System — bottom-right, always on top */}

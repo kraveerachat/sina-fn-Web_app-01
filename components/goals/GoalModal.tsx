@@ -76,7 +76,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-(--scrim) backdrop-blur-sm"
           onClick={handleClose}
         />
 
@@ -94,7 +94,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
           <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[var(--cyber-border)]">
             <h2 className="text-xl font-bold tracking-wide text-[var(--cyber-text)] flex items-center gap-2">
               <Target size={20} className="text-[var(--cyber-cyan)]" /> 
-              เป้าหมายใหม่ <span className="text-[10px] font-mono font-normal text-[var(--cyber-text-muted)] tracking-widest uppercase ml-1">/ New Goal</span>
+              เป้าหมายใหม่ <span className="text-[10px] tnum font-normal text-[var(--cyber-text-muted)] tracking-widest uppercase ml-1">/ New Goal</span>
             </h2>
             <button
               onClick={handleClose}
@@ -109,7 +109,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
             {/* Goal Name */}
             <div>
               <label className="block text-sm font-medium text-[var(--cyber-text)] mb-2">
-                ชื่อเป้าหมาย <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Goal Name</span>
+                ชื่อเป้าหมาย <span className="text-[10px] tnum text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Goal Name</span>
                 <span className="text-[var(--cyber-cyan)] ml-1">*</span>
               </label>
               <input
@@ -125,7 +125,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
             {/* Target Amount */}
             <div>
               <label className="block text-sm font-medium text-[var(--cyber-text)] mb-2">
-                จำนวนเงินเป้าหมาย <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Target Amount</span>
+                จำนวนเงินเป้าหมาย <span className="text-[10px] tnum text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Target Amount</span>
                 <span className="text-[var(--cyber-cyan)] ml-1">*</span>
               </label>
               <div className="relative">
@@ -135,7 +135,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full bg-[var(--cyber-surface)] border border-[var(--cyber-border)] rounded-xl pl-9 pr-4 py-3 text-sm text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)] font-mono focus:outline-none focus:border-[var(--cyber-cyan)]/50 transition-colors"
+                  className="w-full bg-[var(--cyber-surface)] border border-[var(--cyber-border)] rounded-xl pl-9 pr-4 py-3 text-sm text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)] tnum focus:outline-none focus:border-[var(--cyber-cyan)]/50 transition-colors"
                   min="0"
                   step="100"
                 />
@@ -145,7 +145,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
             {/* Target Date */}
             <div>
               <label className="block text-sm font-medium text-[var(--cyber-text)] mb-2">
-                วันที่เป้าหมาย <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Target Date</span>
+                วันที่เป้าหมาย <span className="text-[10px] tnum text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Target Date</span>
               </label>
               <div className="relative">
                 <CalendarDays size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--cyber-cyan)]"/>
@@ -153,7 +153,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
                   type="date"
                   value={targetDate}
                   onChange={(e) => setTargetDate(e.target.value)}
-                  className="w-full bg-[var(--cyber-surface)] border border-[var(--cyber-border)] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--cyber-text)] focus:outline-none focus:border-[var(--cyber-cyan)]/50 transition-colors font-mono"
+                  className="w-full bg-[var(--cyber-surface)] border border-[var(--cyber-border)] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--cyber-text)] focus:outline-none focus:border-[var(--cyber-cyan)]/50 transition-colors tnum"
                   style={{ colorScheme: 'dark' }}
                 />
               </div>
@@ -162,7 +162,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
             {/* Image File Upload */}
             <div>
               <label className="block text-sm font-medium text-[var(--cyber-text)] mb-2">
-                รูปภาพ <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Image</span>
+                รูปภาพ <span className="text-[10px] tnum text-[var(--cyber-text-secondary)] uppercase ml-1 font-normal">/ Image</span>
               </label>
               
               <div className="flex items-center gap-4">
@@ -205,7 +205,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
             <button
               onClick={handleSave}
               disabled={!name || !amount || isSubmitting}
-              className="w-full group/btn relative flex items-center justify-center gap-2 rounded-xl bg-[var(--cyber-cyan)]/10 text-[var(--cyber-cyan)] py-3.5 text-sm font-bold border border-[var(--cyber-cyan)]/40 hover:bg-[var(--cyber-cyan)] hover:text-black hover:border-[var(--cyber-cyan)] transition-all overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[var(--cyber-cyan)] shadow-[0_0_15px_rgba(34,211,238,0.1)]"
+              className="w-full group/btn relative flex items-center justify-center gap-2 rounded-xl bg-[var(--cyber-cyan)]/10 text-[var(--cyber-cyan)] py-3.5 text-sm font-bold border border-[var(--cyber-cyan)]/40 hover:bg-[var(--cyber-cyan)] hover:text-black hover:border-[var(--cyber-cyan)] transition-all overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[var(--cyber-cyan)] shadow-none"
             >
               {isSubmitting ? (
                 <>
@@ -225,7 +225,7 @@ export default function GoalModal({ isOpen, onClose, onSubmit }: GoalModalProps)
 
       {/* Cropper Sub-Modal */}
       {showCropper && imageFile && (
-        <div key="crop-view" className="fixed inset-0 z-[110] h-[100dvh] w-screen flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div key="crop-view" className="fixed inset-0 z-[110] h-[100dvh] w-screen flex items-center justify-center p-4 bg-(--scrim) backdrop-blur-md">
           <div className="w-full max-w-md bg-[var(--cyber-bg)] border border-[var(--cyber-border)] rounded-2xl overflow-hidden flex flex-col h-[70vh]">
             <div className="flex items-center justify-between p-4 border-b border-[var(--cyber-border)]">
               <h3 className="font-bold flex items-center gap-2">

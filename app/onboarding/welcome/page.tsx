@@ -32,9 +32,11 @@ export default function WelcomePage() {
         transition={{ type: 'spring', damping: 15 }}
         className="mb-10"
       >
-        <div className="inline-flex flex-col items-center justify-center p-6 rounded-[24px] bg-linear-to-br from-[#1F2328] to-[#1A1D21] border border-[#2A2F38] shadow-[0_0_40px_#39FF1415]">
-          <span className="text-5xl font-black text-[#39FF14] font-mono leading-none mb-4">S</span>
-          <h1 className="text-2xl font-bold text-[#E8EAF0] tracking-[6px] uppercase font-mono">SINA_FN</h1>
+        <div className="inline-flex flex-col items-center justify-center gap-4 rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-(--shadow)">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-(--blue) to-(--blue-ink) p-2 shadow-[0_8px_24px_color-mix(in_srgb,var(--blue)_35%,transparent)]">
+            <img src="/logo-sn.png" alt="Sina_FN Logo" className="h-full w-full object-contain" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-(--text)">Sina_FN</h1>
         </div>
       </motion.div>
 
@@ -45,8 +47,8 @@ export default function WelcomePage() {
         transition={{ delay: 0.3 }}
         className="mb-12 space-y-2"
       >
-        <p className="text-[10px] tracking-[4px] text-[#39FF14] font-mono uppercase">SYSTEM INITIALIZED</p>
-        <h2 className="text-3xl font-bold text-[#E8EAF0]">ยินดีต้อนรับสู่ระบบ, {nickname}</h2>
+        <p className="text-[13px] text-(--text-2)">Personal Finance</p>
+        <h2 className="text-3xl font-semibold tracking-[-0.02em] text-(--text)">ยินดีต้อนรับ, {nickname}</h2>
       </motion.div>
 
       {/* Feature Slider */}
@@ -66,7 +68,7 @@ export default function WelcomePage() {
             className="absolute inset-0 flex flex-col items-center justify-center"
           >
             <span className="text-4xl mb-3">{features[currentSlide].icon}</span>
-            <h3 className="text-lg font-medium text-[#E8EAF0]">{features[currentSlide].title}</h3>
+            <h3 className="text-lg font-medium text-[var(--text)]">{features[currentSlide].title}</h3>
           </motion.div>
         </AnimatePresence>
 
@@ -76,7 +78,7 @@ export default function WelcomePage() {
             <div
               key={idx}
               className={`h-1.5 rounded-full transition-all duration-500 ${
-                idx === currentSlide ? 'w-6 bg-[#39FF14] shadow-[0_0_8px_#39FF1460]' : 'w-1.5 bg-[#2A2F38]'
+                idx === currentSlide ? 'w-6 bg-(--blue)' : 'w-1.5 bg-(--surface-3)'
               }`}
             />
           ))}
@@ -96,9 +98,9 @@ export default function WelcomePage() {
           fullWidth
           size="lg"
           icon={<ArrowRight size={18} />}
-          onClick={() => window.location.href = '/onboarding/setup'}
+          onClick={() => window.location.href = '/register'}
         >
-          เริ่มต้นใช้งาน
+          สมัครสมาชิก
         </CyberButton>
       </motion.div>
     </div>

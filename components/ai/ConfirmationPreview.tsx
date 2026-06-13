@@ -96,7 +96,7 @@ export default function ConfirmationPreview({
                   ? 'บันทึกรายการแล้ว'
                   : `บันทึก ${transactions.length} รายการแล้ว`}
               </p>
-              <p className="text-[10px] text-[var(--cyber-text-muted)] mt-0.5 font-mono">
+              <p className="text-[10px] text-[var(--cyber-text-muted)] mt-0.5 tnum">
                 NET {formatCurrency(total, true)}
               </p>
             </div>
@@ -133,7 +133,7 @@ export default function ConfirmationPreview({
               className="flex items-center gap-1.5 mb-1"
             >
               <Zap size={10} className="text-[var(--cyber-cyan)]" />
-              <span className="text-[10px] uppercase tracking-wider text-[var(--cyber-cyan)] font-mono">
+              <span className="text-[10px]  text-[var(--cyber-cyan)] tnum">
                 AI-Generated
               </span>
             </motion.div>
@@ -144,7 +144,7 @@ export default function ConfirmationPreview({
             <motion.div
               key={i}
               variants={cardVariants}
-              className={`flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] p-3 rounded-xl hover:border-white/[0.15] transition-colors ${
+              className={`flex items-center gap-3 bg-(--surface-2) border border-(--border) p-3 rounded-xl hover:shadow-(--shadow-lg) transition-colors ${
                 tx.is_ai_generated !== false ? 'ai-sparkle' : ''
               }`}
             >
@@ -156,7 +156,7 @@ export default function ConfirmationPreview({
                   type: 'spring',
                   damping: 14,
                 }}
-                className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center text-lg shrink-0"
+                className="w-9 h-9 rounded-full bg-(--surface-2) flex items-center justify-center text-lg shrink-0"
               >
                 {tx.emoji}
               </motion.div>
@@ -165,11 +165,11 @@ export default function ConfirmationPreview({
                   {tx.description}
                 </p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-[var(--cyber-text-muted)] font-mono">
+                  <span className="text-[10px] text-[var(--cyber-text-muted)] tnum">
                     {tx.category}
                   </span>
                   {tx.currency && tx.currency !== 'THB' && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--cyber-cyan)]/10 text-[var(--cyber-cyan)] font-mono">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--cyber-cyan)]/10 text-[var(--cyber-cyan)] tnum">
                       {tx.currency}
                     </span>
                   )}
@@ -179,7 +179,7 @@ export default function ConfirmationPreview({
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.08 + 0.2 }}
-                className={`text-sm font-semibold font-mono shrink-0 ${
+                className={`text-sm font-semibold tnum shrink-0 ${
                   tx.type === 'income'
                     ? 'text-[var(--cyber-green)]'
                     : 'text-[var(--cyber-red)]'
@@ -194,12 +194,12 @@ export default function ConfirmationPreview({
           {/* Summary row */}
           <motion.div
             variants={summaryVariants}
-            className="flex items-center justify-between pt-2 px-1 border-t border-white/[0.06]"
+            className="flex items-center justify-between pt-2 px-1 border-t border-(--border)"
           >
-            <span className="text-xs text-[var(--cyber-text-muted)] font-mono uppercase tracking-wider">
+            <span className="text-xs text-[var(--cyber-text-muted)] font-medium tracking-wider">
               Total
             </span>
-            <span className="text-sm font-bold font-mono text-[var(--cyber-text)]">
+            <span className="text-sm font-bold tnum text-[var(--cyber-text)]">
               {formatCurrency(total, true)}
             </span>
           </motion.div>
@@ -209,7 +209,7 @@ export default function ConfirmationPreview({
             <button
               onClick={onCancel}
               disabled={status === 'saving'}
-              className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg bg-transparent hover:bg-white/5 text-[var(--cyber-text-muted)] transition-all disabled:opacity-40"
+              className="flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg bg-transparent hover:bg-(--surface-2) text-[var(--cyber-text-muted)] transition-all disabled:opacity-40"
             >
               <X size={14} /> Cancel
             </button>

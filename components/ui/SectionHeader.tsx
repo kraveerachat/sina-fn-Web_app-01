@@ -1,11 +1,11 @@
 'use client';
 
 // ═══════════════════════════════════════════════════════════════════
-// SectionHeader — Cinematic Section Title with GSAP Reveal
+// SectionHeader — Quiet Section Title
 //
-// Utopia Tokyo §3: Section headers slide up + fade in when
-// entering the viewport, with the divider line scaling in from
-// the left. Uses @gsap/react useGSAP() + ScrollTrigger.
+// Sentence-case semibold title with tight tracking; optional
+// subtitle and right-aligned action. Content is always visible;
+// the entrance is a gentle fade-up that never gates visibility.
 // ═══════════════════════════════════════════════════════════════════
 
 import { useRef } from 'react';
@@ -38,72 +38,51 @@ export default function SectionHeader({
 }: SectionHeaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
-  const dividerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || !titleRef.current) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top 92%',
-          once: true,
-        },
-      });
-
-      // Title slide-up + fade
-      if (titleRef.current) {
-        tl.fromTo(
-          titleRef.current,
-          { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }
-        );
-      }
-
-      // Divider scale-in from left
-      if (dividerRef.current && !noDivider) {
-        tl.fromTo(
-          dividerRef.current,
-          { scaleX: 0, transformOrigin: 'left center' },
-          { scaleX: 1, duration: 0.5, ease: 'power2.out' },
-          '-=0.3' // overlap with title
-        );
-      }
+      gsap.fromTo(
+        titleRef.current,
+        { y: 10, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.5,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: 'top 92%',
+            once: true,
+          },
+        }
+      );
     },
-    { scope: containerRef, dependencies: [title, noDivider] }
+    { scope: containerRef, dependencies: [title] }
   );
 
   return (
-    <div ref={containerRef} className={cn('flex items-center gap-2', mb, className)}>
-      {/* Accent bar */}
-      {accent && (
-        <div className="w-0.5 h-4 rounded-full bg-[var(--cyber-green)] shrink-0" />
-      )}
-
-      {/* Title */}
-      <div ref={titleRef} className="flex items-center gap-2 shrink-0 opacity-0">
-        <span className="cyber-label">{title}</span>
+    <div
+      ref={containerRef}
+      className={cn('flex items-baseline justify-between gap-3', mb, className)}
+    >
+      <div ref={titleRef} className="flex items-baseline gap-2 min-w-0">
+        {accent && (
+          <span className="self-center w-1.5 h-1.5 rounded-full bg-(--blue) shrink-0" />
+        )}
+        <span className="text-[15px] font-semibold tracking-[-0.01em] text-(--text) truncate">
+          {title}
+        </span>
         {subtitle && (
-          <span className="cyber-label text-[var(--cyber-text-muted)]">
+          <span className="text-[12.5px] text-(--text-3) truncate">
             {subtitle}
           </span>
         )}
       </div>
 
-      {/* Divider */}
-      {!noDivider && (
-        <div
-          ref={dividerRef}
-          className="flex-1 h-px bg-[var(--cyber-border)]"
-          style={{ transform: 'scaleX(0)', transformOrigin: 'left center' }}
-        />
-      )}
-
-      {/* Action */}
-      {action && (
-        <div className="shrink-0">{action}</div>
-      )}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

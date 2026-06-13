@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, ArrowRight, Loader2, Lock, User, Eye, EyeOff } from 'lucide-react';
 import CyberButton from '@/components/ui/CyberButton';
+import CyberInput from '@/components/ui/CyberInput';
 import Link from 'next/link';
 import { useAppStore } from '@/store/appStore';
 import { supabase } from '@/lib/supabase/client';
@@ -17,7 +18,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const setUserProfile = useAppStore((state) => state.setUserProfile);
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -34,7 +35,7 @@ export default function RegisterPage() {
       setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
       return;
     }
-    
+
     setError('');
     setIsLoading(true);
 
@@ -92,8 +93,8 @@ export default function RegisterPage() {
       const token = authData.session?.access_token || 'registered';
       document.cookie = `auth-session=${token}; path=/; max-age=86400`;
 
-      // 7. Redirect immediately — no email confirmation required
-      window.location.href = '/onboarding/welcome';
+      // 7. Redirect to PIN setup — next step in onboarding flow
+      window.location.href = '/onboarding/pin-setup';
     } catch (err: unknown) {
       setError((err as Error).message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
       setIsLoading(false);
@@ -104,130 +105,114 @@ export default function RegisterPage() {
     <div className="w-full max-w-md">
       {/* Logo / Brand */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-6"
+        className="mb-6 text-center"
       >
-        <h1 className="text-xl font-bold text-[#E8EAF0] tracking-[4px] uppercase font-mono">SINA_FN</h1>
-        <p className="text-[10px] tracking-[3px] text-[#39FF14] font-mono mt-1 uppercase">CREATE NEW RECORD</p>
+        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-(--blue) to-(--blue-ink) p-1.5 shadow-[0_8px_24px_color-mix(in_srgb,var(--blue)_35%,transparent)]">
+          <img src="/logo-sn.png" alt="Sina_FN Logo" className="h-full w-full object-contain" />
+        </div>
+        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-(--text)">
+          สร้างบัญชีใหม่
+        </h1>
+        <p className="mt-1 text-[13px] text-(--text-2)">
+          เริ่มต้นจัดการการเงินของคุณกับ Sina_FN
+        </p>
       </motion.div>
 
       {/* Card */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative rounded-[16px] border border-[#2A2F38] bg-[#1F2328] overflow-hidden"
+        className="rounded-3xl border border-(--border) bg-(--surface) p-8 shadow-(--shadow-lg)"
       >
-        <span className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#39FF14]/30" />
-        <span className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#39FF14]/30" />
-        <span className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#39FF14]/30" />
-        <span className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#39FF14]/30" />
+        <form onSubmit={handleRegister} className="space-y-4">
+          <CyberInput
+            type="text"
+            placeholder="ชื่อ-นามสกุล"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            icon={<User size={15} />}
+          />
 
-        <div className="p-8">
-          <form onSubmit={handleRegister} className="space-y-4">
-            
-            {/* Full Name & Nickname — stacked full width */}
-            <div className="flex flex-col gap-3">
-              <div className="relative group">
-                <div className="flex items-center gap-2 rounded-[6px] border border-[#2A2F38] bg-[#252A30] group-focus-within:border-[#39FF14]/30 transition-all">
-                  <span className="pl-3 text-[#374151]"><User size={14} /></span>
-                  <input
-                    type="text"
-                    placeholder="ชื่อ-นามสกุล"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="flex-1 bg-transparent px-2 py-2.5 text-xs text-[#E8EAF0] placeholder-[#374151] outline-none font-mono"
-                  />
-                </div>
-              </div>
-              <div className="relative group">
-                <div className="flex items-center gap-2 rounded-[6px] border border-[#2A2F38] bg-[#252A30] group-focus-within:border-[#39FF14]/30 transition-all">
-                  <span className="pl-3 text-[#374151]"><User size={14} /></span>
-                  <input
-                    type="text"
-                    placeholder="ชื่อเล่น"
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    className="flex-1 bg-transparent px-2 py-2.5 text-xs text-[#E8EAF0] placeholder-[#374151] outline-none font-mono"
-                  />
-                </div>
-              </div>
-            </div>
+          <CyberInput
+            type="text"
+            placeholder="ชื่อเล่น"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            icon={<User size={15} />}
+          />
 
-            {/* Email */}
-            <div className="relative group">
-              <div className="flex items-center gap-2 rounded-[6px] border border-[#2A2F38] bg-[#252A30] group-focus-within:border-[#39FF14]/30 transition-all">
-                <span className="pl-3 text-[#374151]"><Mail size={14} /></span>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 bg-transparent px-2 py-2.5 text-xs text-[#E8EAF0] placeholder-[#374151] outline-none font-mono"
-                />
-              </div>
-            </div>
+          <CyberInput
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            icon={<Mail size={15} />}
+          />
 
-            {/* Password */}
-            <div className="relative group">
-              <div className="flex items-center gap-2 rounded-[6px] border border-[#2A2F38] bg-[#252A30] group-focus-within:border-[#39FF14]/30 transition-all relative">
-                <span className="pl-3 text-[#374151]"><Lock size={14} /></span>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="flex-1 bg-transparent px-2 py-2.5 pr-10 text-xs text-[#E8EAF0] placeholder-[#374151] outline-none font-mono"
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 text-[#374151] hover:text-[#E8EAF0]"
-                >
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            </div>
-            
-            {/* Confirm Password */}
-            <div className="relative group">
-              <div className="flex items-center gap-2 rounded-[6px] border border-[#2A2F38] bg-[#252A30] group-focus-within:border-[#39FF14]/30 transition-all">
-                <span className="pl-3 text-[#374151]"><Lock size={14} /></span>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="flex-1 bg-transparent px-2 py-2.5 text-xs text-[#E8EAF0] placeholder-[#374151] outline-none font-mono"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-[10px] text-[#FF3B3B] font-mono border border-[#FF3B3B]/20 bg-[#FF3B3B]/5 p-2 rounded">⚠ {error}</p>
-            )}
-
-            <div className="pt-2">
-              <CyberButton
-                variant="primary"
-                fullWidth
-                glow
-                type="submit"
-                icon={isLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-                disabled={isLoading}
+          <CyberInput
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            icon={<Lock size={15} />}
+            rightElement={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="text-(--text-3) hover:text-(--text) transition-colors"
               >
-                {isLoading ? 'CREATING...' : 'สมัครสมาชิก'}
-              </CyberButton>
-            </div>
-            
-            <div className="pt-2 text-center">
-              <Link href="/login" className="text-xs text-[#6B7280] hover:text-[#39FF14] transition-colors font-mono tracking-wide flex items-center justify-center gap-1">
-                ← กลับสู่หน้า Login
-              </Link>
-            </div>
-          </form>
-        </div>
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            }
+          />
+
+          <CyberInput
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            icon={<Lock size={15} />}
+          />
+
+          {error && (
+            <p className="rounded-xl border border-(--red)/25 bg-(--red-soft) p-3 text-[13px] text-(--red)">
+              {error}
+            </p>
+          )}
+
+          <div className="pt-2">
+            <CyberButton
+              variant="primary"
+              fullWidth
+              glow
+              size="lg"
+              type="submit"
+              icon={
+                isLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <ArrowRight size={16} />
+                )
+              }
+              disabled={isLoading}
+            >
+              {isLoading ? 'กำลังสร้างบัญชี...' : 'สมัครสมาชิก'}
+            </CyberButton>
+          </div>
+
+          <div className="pt-2 text-center">
+            <Link
+              href="/login"
+              className="flex items-center justify-center gap-1 text-[13px] text-(--text-2) hover:text-(--blue) transition-colors"
+            >
+              ← กลับสู่หน้า Login
+            </Link>
+          </div>
+        </form>
       </motion.div>
     </div>
   );

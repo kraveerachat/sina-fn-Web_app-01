@@ -1,13 +1,18 @@
 'use client';
 
+// ═══════════════════════════════════════════════════════════════════
+// Tax Planning — matches the design prototype (page_tax.jsx):
+// result hero (44px blue tax figure + ≈/month + effective rate /
+// net taxable), income & deductions card, and the horizontal tax
+// bracket strip with the current bracket highlighted. All data
+// flows (real annual income, persisted deductions) unchanged.
+// ═══════════════════════════════════════════════════════════════════
+
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import { Loader2, Calculator, ChevronDown, ChevronUp, Info, Save } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Save, Info } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import CyberCard from '@/components/ui/CyberCard';
-import SectionHeader from '@/components/ui/SectionHeader';
-import ScrambleText from '@/components/ui/ScrambleText';
 import { useAuth } from '@/hooks/useAuth';
 import { useAnnualIncome } from '@/hooks/useAnnualIncome';
 import { getTaxDeductions, saveTaxDeductions, formatSupabaseError } from '@/lib/supabase/queries';
@@ -24,7 +29,7 @@ interface TaxBracket {
 }
 
 const TAX_BRACKETS: TaxBracket[] = [
-  { min: 0,         max: 150_000,   rate: 0,  label: 'ยกเว้นภาษี' },
+  { min: 0,         max: 150_000,   rate: 0,  label: '0%' },
   { min: 150_001,   max: 300_000,   rate: 5,  label: '5%' },
   { min: 300_001,   max: 500_000,   rate: 10, label: '10%' },
   { min: 500_001,   max: 750_000,   rate: 15, label: '15%' },
@@ -60,23 +65,25 @@ const COMMON_DEDUCTIONS: Deduction[] = [
 function calculateTax(annualIncome: number, totalDeductions: number) {
   const taxableIncome = Math.max(0, annualIncome - totalDeductions);
   let totalTax = 0;
-  const bracketBreakdown: { bracket: TaxBracket; taxableInBracket: number; taxAmount: number }[] = [];
 
   for (const bracket of TAX_BRACKETS) {
     const upper = bracket.max ?? Infinity;
-    if (taxableIncome <= bracket.min) {
-      bracketBreakdown.push({ bracket, taxableInBracket: 0, taxAmount: 0 });
-      continue;
-    }
-    const incomeInBracket = Math.min(taxableIncome, upper) - bracket.min + (bracket.min === 0 ? 0 : 1);
-    const clampedIncome = Math.max(0, bracket.min === 0 ? Math.min(taxableIncome, upper) : incomeInBracket);
-    const tax = clampedIncome * (bracket.rate / 100);
-    totalTax += tax;
-    bracketBreakdown.push({ bracket, taxableInBracket: clampedIncome, taxAmount: tax });
+    if (taxableIncome <= bracket.min) continue;
+    const clamped = bracket.min === 0
+      ? Math.min(taxableIncome, upper)
+      : Math.max(0, Math.min(taxableIncome, upper) - bracket.min + 1);
+    totalTax += clamped * (bracket.rate / 100);
   }
 
-  return { taxableIncome, totalTax, effectiveRate: annualIncome > 0 ? (totalTax / annualIncome) * 100 : 0, bracketBreakdown };
+  return {
+    taxableIncome,
+    totalTax,
+    effectiveRate: annualIncome > 0 ? (totalTax / annualIncome) * 100 : 0,
+  };
 }
+
+const inputCls =
+  'w-full rounded-[14px] border border-(--border) bg-(--surface-2) px-3.5 py-2.5 text-sm text-(--text) outline-none transition-[border-color,box-shadow] focus:border-(--blue) focus:shadow-[0_0_0_3px_var(--blue-soft)] placeholder:text-(--text-3)';
 
 export default function TaxPlanningPage() {
   const { user } = useAuth();
@@ -133,6 +140,13 @@ export default function TaxPlanningPage() {
     [annualIncome, totalDeductions]
   );
 
+  const curBracket = useMemo(
+    () => TAX_BRACKETS.findIndex(
+      (b) => taxResult.taxableIncome >= b.min && taxResult.taxableIncome <= (b.max ?? Infinity)
+    ),
+    [taxResult.taxableIncome]
+  );
+
   const updateDeduction = (id: string, value: number) => {
     const deduction = COMMON_DEDUCTIONS.find((d) => d.id === id);
     const clamped = deduction ? Math.min(value, deduction.maxAmount) : value;
@@ -151,245 +165,216 @@ export default function TaxPlanningPage() {
     }
   }, [userId, deductionAmounts, saving]);
 
-  // GSAP stagger
+  // ── Stagger reveal ──
   useGSAP(
     () => {
       if (!pageRef.current || loading) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const sections = gsap.utils.toArray<HTMLElement>('.tax-section', pageRef.current);
       if (sections.length === 0) return;
-      gsap.set(sections, { y: 30, opacity: 0 });
-      gsap.to(sections, {
-        y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.1,
-        scrollTrigger: { trigger: pageRef.current, start: 'top 85%', once: true },
-      });
+      gsap.fromTo(sections,
+        { y: 25, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.1, delay: 0.05 }
+      );
     },
     { scope: pageRef, dependencies: [loading] }
   );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh]">
-        <Loader2 className="w-7 h-7 text-[var(--cyber-green)] animate-spin" />
+      <div className="flex flex-col gap-4">
+        <div className="cyber-skeleton h-16 w-1/3 rounded-2xl" />
+        <div className="bento">
+          <div className="cyber-skeleton cell-5 h-52 rounded-3xl" />
+          <div className="cyber-skeleton cell-7 h-52 rounded-3xl" />
+          <div className="cyber-skeleton cell-12 h-32 rounded-3xl" />
+        </div>
       </div>
     );
   }
 
-  const visibleDeductions = showAllDeductions ? COMMON_DEDUCTIONS : COMMON_DEDUCTIONS.slice(0, 5);
+  const visibleDeductions = showAllDeductions ? COMMON_DEDUCTIONS : COMMON_DEDUCTIONS.slice(0, 6);
 
   return (
-    <div ref={pageRef} className="flex flex-col h-full space-y-6 pb-20 lg:pb-6">
-      {/* ── Header ── */}
-      <div className="shrink-0">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-cyan)] hud-dot" />
-          <span className="text-[10px] tracking-[3px] text-[var(--cyber-cyan)] font-mono uppercase">TAX ESTIMATION HUD</span>
-        </div>
-        <h1 className="text-2xl font-bold text-[var(--cyber-text)]">วางแผนภาษี</h1>
+    <div ref={pageRef} className="flex flex-col gap-4">
+      {/* ── Page head ── */}
+      <div className="mb-1 mt-1.5">
+        <h1 className="text-[25px] font-semibold leading-[1.1] tracking-[-0.025em] text-(--text) lg:text-[30px]">
+          วางแผนภาษี
+        </h1>
+        <p className="mt-1 text-[14.5px] text-(--text-2)">
+          ประมาณภาษีเงินได้บุคคลธรรมดา · ไม่ใช่คำแนะนำทางภาษี
+        </p>
       </div>
 
-      {/* ── Tax Summary Hero ── */}
-      <CyberCard glow className="p-6 tax-section">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Input: Annual Income */}
-          <div>
-            <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px] block mb-2">
+      <div className="bento">
+        {/* ── Result hero ── */}
+        <div className="tax-section cell-5">
+          <div className="flex h-full flex-col justify-center rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+            <p className="eyebrow">ภาษีที่ต้องจ่าย</p>
+            <p className="tnum mb-1 mt-2 text-[38px] font-bold leading-[1.05] tracking-[-0.03em] text-(--blue) lg:text-[44px]">
+              {formatCurrency(taxResult.totalTax)}
+            </p>
+            <p className="tnum text-[13.5px] text-(--text-3)">
+              ≈ {formatCurrency(taxResult.totalTax / 12)} ต่อเดือน
+            </p>
+            <div className="my-3.5 h-px bg-(--border-2)" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-(--text-3)">อัตราเฉลี่ย</p>
+                <p className="tnum mt-0.5 text-xl font-bold text-(--text)">
+                  {taxResult.effectiveRate.toFixed(1)}%
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-(--text-3)">เงินได้สุทธิ</p>
+                <p className="tnum mt-0.5 text-xl font-bold text-(--text)">
+                  {formatCurrency(taxResult.taxableIncome)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Income card ── */}
+        <div className="tax-section cell-7">
+          <div className="h-full rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+            <p className="mb-3.5 text-sm font-semibold tracking-[-0.01em] text-(--text)">
+              รายได้ &amp; ค่าลดหย่อน
+            </p>
+
+            <label className="mb-1.5 block text-[12.5px] font-medium text-(--text-2)">
               เงินได้พึงประเมิน (รายปี)
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--cyber-text-muted)] text-sm font-mono">฿</span>
+              <span className="tnum absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-(--text-3)">฿</span>
               <input
                 type="number"
                 value={incomeOverride ?? fetchedIncome}
                 onChange={(e) => setIncomeOverride(Math.max(0, Number(e.target.value)))}
-                className="w-full rounded-xl border border-[var(--cyber-cyan)]/30 bg-white/[0.03] pl-8 pr-3 py-3 text-lg text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-cyan)]/60 font-mono transition-all"
+                className={`${inputCls} tnum pl-8 text-base font-semibold`}
               />
             </div>
-            <p className="text-[9px] font-mono text-[var(--cyber-text-muted)] mt-1">
+            <p className="mt-1.5 text-xs text-(--text-3)">
               {fetchedIncome > 0 && incomeOverride === null
                 ? `จากรายรับจริงปี ${currentYear}`
-                : `≈ ${formatCurrency(annualIncome / 12)}/เดือน`}
+                : `≈ ${formatCurrency(annualIncome / 12)} ต่อเดือน`}
               {incomeOverride !== null && fetchedIncome > 0 && (
                 <button
                   onClick={() => setIncomeOverride(null)}
-                  className="ml-2 text-[var(--cyber-cyan)] hover:underline"
+                  className="ml-2 font-medium text-(--blue) hover:opacity-70"
                 >
                   ใช้ยอดจริง ({formatCurrency(fetchedIncome)})
                 </button>
               )}
             </p>
-          </div>
 
-          {/* Tax amount */}
-          <div className="flex flex-col justify-center">
-            <div className="flex items-center gap-2 mb-1">
-              <Calculator size={14} className="text-[var(--cyber-cyan)]" />
-              <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px]">ภาษีที่ต้องจ่าย</span>
-            </div>
-            <ScrambleText
-              text={formatCurrency(taxResult.totalTax)}
-              duration={500}
-              className="text-3xl md:text-4xl font-bold font-mono text-[var(--cyber-cyan)]"
-            />
-            <p className="text-[10px] font-mono text-[var(--cyber-text-secondary)] mt-1">
-              อัตราเฉลี่ย: <span className="text-[var(--cyber-cyan)]">{taxResult.effectiveRate.toFixed(1)}%</span>
-            </p>
-          </div>
-
-          {/* Quick stats */}
-          <div className="flex flex-col justify-center gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase">เงินได้สุทธิ</span>
-              <span className="text-sm font-mono font-bold text-[var(--color-success)]">
-                {formatCurrency(taxResult.taxableIncome)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase">ลดหย่อนรวม</span>
-              <span className="text-sm font-mono font-bold text-[var(--cyber-amber)]">
-                {formatCurrency(totalDeductions)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase">ภาษี/เดือน</span>
-              <span className="text-sm font-mono font-bold text-[var(--cyber-cyan)]">
-                {formatCurrency(taxResult.totalTax / 12)}
-              </span>
+            <div className="inset mt-4 flex items-center justify-between px-[15px] py-3 text-[13px]">
+              <span className="text-(--text-3)">ลดหย่อนรวม</span>
+              <span className="tnum font-semibold text-(--gold)">−{formatCurrency(totalDeductions)}</span>
             </div>
           </div>
         </div>
-      </CyberCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ── Tax Brackets ── */}
-        <div className="tax-section">
-          <SectionHeader title="TAX BRACKETS" subtitle="อัตราภาษีเงินได้บุคคลธรรมดา" accent />
-          <CyberCard className="p-5">
-            <div className="flex flex-col gap-3">
-              {taxResult.bracketBreakdown.map(({ bracket, taxableInBracket, taxAmount }, i) => {
-                const maxWidth = bracket.max
-                  ? Math.min(((bracket.max - bracket.min) / annualIncome) * 100, 100)
-                  : 100;
-                const fillWidth = annualIncome > 0
-                  ? (taxableInBracket / annualIncome) * 100
-                  : 0;
-                const isActive = taxableInBracket > 0;
-
+        {/* ── Bracket strip ── */}
+        <div className="tax-section cell-12">
+          <div className="rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+            <p className="mb-4 text-sm font-semibold tracking-[-0.01em] text-(--text)">ขั้นบันไดภาษี</p>
+            <div className="grid grid-cols-4 gap-2 lg:grid-cols-8">
+              {TAX_BRACKETS.map((b, i) => {
+                const active = i <= curBracket;
+                const isCur = i === curBracket;
                 return (
-                  <div key={i} className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-mono font-bold ${isActive ? 'text-[var(--cyber-cyan)]' : 'text-[var(--cyber-text-muted)]'}`}>
-                          {bracket.label}
-                        </span>
-                        <span className="text-[9px] font-mono text-[var(--cyber-text-muted)]">
-                          {formatCurrency(bracket.min)} – {bracket.max ? formatCurrency(bracket.max) : '∞'}
-                        </span>
-                      </div>
-                      {isActive && (
-                        <span className="text-[10px] font-mono text-[var(--cyber-cyan)]">
-                          {formatCurrency(taxAmount)}
-                        </span>
-                      )}
+                  <div key={i} className="text-center">
+                    <div
+                      className="flex h-16 items-end justify-center rounded-xl p-1.5 transition-all duration-300"
+                      style={{
+                        background: active
+                          ? `color-mix(in srgb, var(--blue) ${isCur ? '100%' : '22%'}, transparent)`
+                          : 'var(--surface-2)',
+                        border: isCur ? '1px solid var(--blue)' : '1px solid var(--border-2)',
+                      }}
+                    >
+                      <span
+                        className="tnum text-[13px] font-bold"
+                        style={{ color: isCur ? '#fff' : active ? 'var(--blue)' : 'var(--text-3)' }}
+                      >
+                        {b.label}
+                      </span>
                     </div>
-                    <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden" style={{ width: `${Math.max(maxWidth, 20)}%` }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${fillWidth > 0 ? Math.max((fillWidth / maxWidth) * 100, 4) : 0}%`,
-                          background: isActive
-                            ? `linear-gradient(90deg, var(--cyber-cyan), ${bracket.rate > 20 ? 'var(--cyber-red)' : 'var(--cyber-green)'})`
-                            : 'transparent',
-                        }}
-                      />
-                    </div>
+                    <p className="tnum mt-1.5 text-[10px] text-(--text-3)">
+                      {b.max ? `${b.max / 1000}k` : '∞'}
+                    </p>
                   </div>
                 );
               })}
             </div>
-          </CyberCard>
+          </div>
         </div>
 
         {/* ── Deductions ── */}
-        <div className="tax-section">
-          <SectionHeader
-            title="TAX DEDUCTIONS"
-            subtitle="ค่าลดหย่อน"
-            accent
-            action={
+        <div className="tax-section cell-12">
+          <div className="rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold tracking-[-0.01em] text-(--text)">
+                ค่าลดหย่อน <span className="font-medium text-(--text-3)">(SSF/RMF/ประกัน ฯลฯ)</span>
+              </p>
               <button
                 onClick={handleSaveDeductions}
                 disabled={saving}
-                className="flex items-center gap-1.5 text-[10px] font-mono text-[var(--cyber-cyan)] uppercase tracking-wider hover:text-[var(--cyber-text)] transition-all disabled:opacity-50"
+                className="pill pill-soft pill-sm press tap"
               >
-                {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                บันทึก
+                {saving ? <Loader2 className="animate-spin" /> : <Save />} บันทึก
               </button>
-            }
-          />
-          <CyberCard className="p-5">
-            <div className="flex flex-col gap-3">
+            </div>
+
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
               {visibleDeductions.map((ded) => {
                 const currentAmount = deductionAmounts[ded.id] ?? 0;
                 const pct = ded.maxAmount > 0 ? (currentAmount / ded.maxAmount) * 100 : 0;
-
                 return (
-                  <div key={ded.id} className="group">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs text-[var(--cyber-text)] truncate">{ded.nameTH}</span>
-                        <div className="relative">
-                          <Info size={10} className="text-[var(--cyber-text-muted)] cursor-help" />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-48 p-2 rounded-lg bg-[var(--cyber-surface)] border border-white/[0.08] text-[9px] text-[var(--cyber-text-secondary)] font-mono opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-10">
-                            {ded.description}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-mono text-[var(--cyber-text-muted)] shrink-0">
+                  <div key={ded.id} title={ded.description}>
+                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                      <span className="truncate text-[13px] font-medium text-(--text)">{ded.nameTH}</span>
+                      <span className="tnum shrink-0 text-[11px] text-(--text-3)">
                         สูงสุด {formatCurrency(ded.maxAmount)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <input
                         type="number"
                         value={currentAmount || ''}
                         onChange={(e) => updateDeduction(ded.id, Number(e.target.value))}
                         placeholder="0"
-                        className="flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-xs text-[var(--cyber-text)] outline-none focus:border-[var(--cyber-amber)]/40 font-mono transition-all"
+                        className={`${inputCls} tnum flex-1`}
                       />
-                      <div className="w-24 h-1.5 rounded-full bg-white/[0.06] overflow-hidden shrink-0">
-                        <div
-                          className="h-full rounded-full bg-[var(--cyber-amber)] transition-all duration-300"
-                          style={{ width: `${Math.min(pct, 100)}%` }}
-                        />
+                      <div className="track w-24 shrink-0">
+                        <i style={{ width: `${Math.min(pct, 100)}%` }} />
                       </div>
                     </div>
                   </div>
                 );
               })}
-
-              <button
-                onClick={() => setShowAllDeductions(!showAllDeductions)}
-                className="flex items-center justify-center gap-1 text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-wider hover:text-[var(--cyber-text)] transition-all mt-2 pt-2 border-t border-white/[0.06]"
-              >
-                {showAllDeductions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                {showAllDeductions ? 'แสดงน้อยลง' : `แสดงทั้งหมด (${COMMON_DEDUCTIONS.length})`}
-              </button>
             </div>
-          </CyberCard>
+
+            <button
+              onClick={() => setShowAllDeductions(!showAllDeductions)}
+              className="mt-4 flex w-full items-center justify-center gap-1.5 border-t border-(--border-2) pt-3.5 text-[12.5px] font-medium text-(--text-2) transition-colors hover:text-(--text)"
+            >
+              {showAllDeductions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {showAllDeductions ? 'แสดงน้อยลง' : `แสดงทั้งหมด (${COMMON_DEDUCTIONS.length})`}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ── Disclaimer ── */}
-      <div className="tax-section">
-        <div className="glass-card border border-white/[0.06] rounded-2xl p-4 flex items-start gap-3">
-          <Info size={16} className="text-[var(--cyber-text-muted)] shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-wider mb-1">DISCLAIMER</p>
-            <p className="text-xs text-[var(--cyber-text-muted)] leading-relaxed">
-              การคำนวณนี้เป็นเพียงการประมาณการเบื้องต้น ตามอัตราภาษีเงินได้บุคคลธรรมดาของไทย ไม่ถือเป็นคำแนะนำทางภาษี กรุณาปรึกษาผู้เชี่ยวชาญด้านภาษีสำหรับการวางแผนภาษีที่ถูกต้อง
-            </p>
-          </div>
-        </div>
+      <div className="tax-section flex items-start gap-2.5 px-1 text-(--text-3)">
+        <Info size={14} className="mt-0.5 shrink-0" />
+        <p className="text-xs leading-relaxed">
+          การคำนวณนี้เป็นการประมาณการเบื้องต้นตามอัตราภาษีเงินได้บุคคลธรรมดาของไทย
+          ไม่ถือเป็นคำแนะนำทางภาษี กรุณาปรึกษาผู้เชี่ยวชาญสำหรับการวางแผนภาษีที่ถูกต้อง
+        </p>
       </div>
     </div>
   );

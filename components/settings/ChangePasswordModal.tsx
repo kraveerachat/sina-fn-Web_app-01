@@ -94,7 +94,7 @@ export default function ChangePasswordModal({
   };
 
   const inputClass =
-    'w-full rounded-none border border-[var(--cyber-border)] bg-[var(--cyber-surface)] px-4 py-3 pr-12 text-sm font-mono text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)] outline-none transition-all focus:border-[var(--cyber-amber)]/40 focus:shadow-[0_0_12px_rgba(255,179,0,0.1)]';
+    'w-full rounded-xl border border-[var(--cyber-border)] bg-[var(--cyber-surface)] px-4 py-3 pr-12 text-sm font-mono text-[var(--cyber-text)] placeholder-[var(--cyber-text-muted)] outline-none transition-all focus:border-[var(--cyber-amber)]/40 shadow-none';
 
   return (
     <SettingsModal
@@ -109,7 +109,7 @@ export default function ChangePasswordModal({
       <div className="space-y-4">
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-2">
-          <div className={`w-6 h-6 rounded-none border flex items-center justify-center text-[10px] font-mono ${
+          <div className={`w-6 h-6 rounded-xl border flex items-center justify-center text-[10px] font-mono ${
             step === 'verify'
               ? 'border-[var(--cyber-amber)] text-[var(--cyber-amber)] bg-[var(--cyber-amber)]/10'
               : 'border-[var(--cyber-green)] text-[var(--cyber-green)] bg-[var(--cyber-green)]/10'
@@ -117,7 +117,7 @@ export default function ChangePasswordModal({
             {step === 'create' ? <Check size={12} /> : '1'}
           </div>
           <div className="flex-1 h-px bg-[var(--cyber-border)]" />
-          <div className={`w-6 h-6 rounded-none border flex items-center justify-center text-[10px] font-mono ${
+          <div className={`w-6 h-6 rounded-xl border flex items-center justify-center text-[10px] font-mono ${
             step === 'create'
               ? 'border-[var(--cyber-amber)] text-[var(--cyber-amber)] bg-[var(--cyber-amber)]/10'
               : 'border-[var(--cyber-border)] text-[var(--cyber-text-muted)]'
@@ -129,7 +129,7 @@ export default function ChangePasswordModal({
         {step === 'verify' ? (
           /* Step 1: Verify current password */
           <div className="space-y-3">
-            <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px]">
+            <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[0.04em]">
               CURRENT PASSWORD
             </label>
             <div className="relative">
@@ -155,7 +155,7 @@ export default function ChangePasswordModal({
           /* Step 2: New password */
           <div className="space-y-3">
             <div className="space-y-2">
-              <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px]">
+              <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[0.04em]">
                 NEW PASSWORD
               </label>
               <div className="relative">
@@ -177,7 +177,7 @@ export default function ChangePasswordModal({
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px]">
+              <label className="text-[10px] font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[0.04em]">
                 CONFIRM NEW PASSWORD
               </label>
               <input
@@ -202,14 +202,14 @@ export default function ChangePasswordModal({
           <button
             onClick={handleClose}
             disabled={loading}
-            className="flex-1 py-3 rounded-none border border-white/10 bg-white/5 text-sm font-mono text-[var(--cyber-text-secondary)] uppercase tracking-[2px] hover:bg-white/10 transition-all disabled:opacity-30"
+            className="flex-1 py-3 rounded-xl border border-(--border) bg-(--surface-2) text-sm font-medium text-(--text-2) hover:bg-(--surface-3) transition-all disabled:opacity-30"
           >
             ยกเลิก
           </button>
           <button
             onClick={step === 'verify' ? handleVerify : handleChangePassword}
             disabled={loading || (step === 'verify' ? !currentPw.trim() : !newPw.trim())}
-            className="flex-1 py-3 rounded-none border border-[var(--cyber-amber)]/30 bg-[var(--cyber-amber)]/10 text-sm font-mono text-[var(--cyber-amber)] uppercase tracking-[2px] flex items-center justify-center gap-2 hover:bg-[var(--cyber-amber)]/20 transition-all disabled:opacity-30"
+            className="flex-1 py-3 rounded-xl border border-[var(--cyber-amber)]/30 bg-[var(--cyber-amber)]/10 text-sm font-mono text-[var(--cyber-amber)] uppercase tracking-[0.04em] flex items-center justify-center gap-2 hover:bg-[var(--cyber-amber)]/20 transition-all disabled:opacity-30"
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
             {step === 'verify' ? 'ยืนยัน' : 'เปลี่ยนรหัสผ่าน'}

@@ -1,14 +1,24 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Plus, Target, Loader2 } from 'lucide-react';
+// ═══════════════════════════════════════════════════════════════════
+// Goals — matches the design prototype (page_goals.jsx):
+// page head + pill-primary add button, an overall-progress summary
+// card (ring + totals + goal counts), then the goal card grid.
+// Data flows through useGoals untouched; saved amounts come from
+// each goal's linked wallet balance, same as GoalCard.
+// ═══════════════════════════════════════════════════════════════════
+
+import { useMemo, useState, useRef } from 'react';
+import { Plus } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { useGoals } from '@/hooks/useGoals';
 import GoalGrid from '@/components/goals/GoalGrid';
 import GoalModal from '@/components/goals/GoalModal';
+import Ring from '@/components/ui/Ring';
 import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,52 +28,104 @@ export default function GoalsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
 
-  // ── GSAP stagger reveal for page sections ──
+  // ── Overall progress — saved = linked wallet balance (same as GoalCard) ──
+  const summary = useMemo(() => {
+    const totalSaved = goals.reduce((s, g) => s + (g.wallet?.balance || 0), 0);
+    const totalTarget = goals.reduce((s, g) => s + g.target_amount, 0);
+    const overall = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
+    const done = goals.filter(
+      (g) => g.target_amount > 0 && (g.wallet?.balance || 0) / g.target_amount >= 1
+    ).length;
+    return { totalSaved, totalTarget, overall, done };
+  }, [goals]);
+
+  // ── Stagger reveal for page sections ──
   useGSAP(
     () => {
       if (!pageRef.current || loading) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const sections = gsap.utils.toArray<HTMLElement>('.goals-section', pageRef.current);
       if (sections.length === 0) return;
-      gsap.set(sections, { y: 25, opacity: 0 });
-      gsap.to(sections, {
-        y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.1, delay: 0.05,
-      });
+      gsap.fromTo(sections,
+        { y: 25, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: 0.1, delay: 0.05 }
+      );
     },
     { scope: pageRef, dependencies: [loading] }
   );
 
   if (!user && !loading) return null;
 
-  return (
-    <div ref={pageRef} className="flex flex-col space-y-6 pb-24 lg:pb-8">
-      {/* Page heading & Add button */}
-      <div className="goals-section flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-7 w-0.5 bg-[var(--cyber-cyan)]" />
-          <h1 className="text-2xl font-bold tracking-[4px] text-[var(--cyber-text)] uppercase font-mono flex items-center gap-2">
-            <Target size={24} className="text-[var(--cyber-cyan)]" />
-            GOALS
-          </h1>
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="cyber-skeleton h-16 w-1/3 rounded-2xl" />
+        <div className="cyber-skeleton h-32 rounded-3xl" />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="cyber-skeleton h-72 rounded-3xl" />
+          <div className="cyber-skeleton h-72 rounded-3xl" />
+          <div className="cyber-skeleton h-72 rounded-3xl" />
         </div>
+      </div>
+    );
+  }
 
+  return (
+    <div ref={pageRef} className="flex flex-col gap-4">
+      {/* ── Page head ── */}
+      <div className="goals-section mb-1 mt-1.5 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[25px] font-semibold leading-[1.1] tracking-[-0.025em] text-(--text) lg:text-[30px]">
+            เป้าหมายออมเงิน
+          </h1>
+          <p className="mt-1 text-[14.5px] text-(--text-2)">ออมทีละนิด สู่เป้าหมายที่ฝันไว้</p>
+        </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--cyber-cyan)]/10 text-[var(--cyber-cyan)] border border-[var(--cyber-cyan)]/40 hover:bg-[var(--cyber-cyan)] hover:text-black transition-all font-mono text-sm font-bold shadow-[0_0_15px_rgba(34,211,238,0.15)]"
+          className="pill pill-primary press tap shrink-0"
         >
-          <Plus size={16} />
-          NEW GOAL
+          <Plus />
+          เพิ่มเป้าหมาย
         </button>
       </div>
 
-      {/* Main Grid */}
-      <div className="goals-section">
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-[var(--cyber-cyan)]" />
+      {/* ── Overall progress summary ── */}
+      {goals.length > 0 && (
+        <div className="goals-section rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+          <div className="flex flex-wrap items-center justify-between gap-5">
+            <div className="flex items-center gap-[18px]">
+              <Ring pct={summary.overall}>
+                <span className="tnum text-lg font-bold tracking-[-0.01em] text-(--text)">
+                  {summary.overall}%
+                </span>
+              </Ring>
+              <div>
+                <p className="eyebrow">ความคืบหน้ารวม</p>
+                <p className="tnum mt-1 text-[26px] font-bold leading-none tracking-[-0.02em] text-(--text)">
+                  {formatCurrency(summary.totalSaved)}
+                </p>
+                <p className="tnum mt-1 text-[13px] text-(--text-3)">
+                  เป้าหมาย {formatCurrency(summary.totalTarget)}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-[26px]">
+              <div className="text-center">
+                <p className="tnum text-2xl font-bold text-(--text)">{goals.length}</p>
+                <p className="text-xs text-(--text-3)">เป้าหมาย</p>
+              </div>
+              <div className="text-center">
+                <p className="tnum text-2xl font-bold text-(--gold)">{summary.done}</p>
+                <p className="text-xs text-(--text-3)">สำเร็จ</p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <GoalGrid goals={goals} />
-        )}
+        </div>
+      )}
+
+      {/* ── Goal cards ── */}
+      <div className="goals-section">
+        <GoalGrid goals={goals} />
       </div>
 
       {/* Modal */}
