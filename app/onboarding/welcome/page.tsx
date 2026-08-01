@@ -25,19 +25,21 @@ export default function WelcomePage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
-      {/* Animated Logo */}
+      {/* Hero Logo */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', damping: 15 }}
-        className="mb-10"
+        className="mb-8 flex flex-col items-center"
       >
-        <div className="inline-flex flex-col items-center justify-center gap-4 rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-(--shadow)">
-          <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-(--blue) to-(--blue-ink) p-2 shadow-[0_8px_24px_color-mix(in_srgb,var(--blue)_35%,transparent)]">
-            <img src="/logo-sn.png" alt="Sina_FN Logo" className="h-full w-full object-contain" />
-          </div>
-          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-(--text)">Sina_FN</h1>
+        <div className="relative mb-4 flex items-center justify-center">
+          <img
+            src="/logo-sn.png"
+            alt="Sina_FN Logo"
+            className="h-24 w-24 object-contain filter drop-shadow-[0_8px_30px_rgba(0,122,255,0.35)]"
+          />
         </div>
+        <h1 className="text-3xl font-bold tracking-tight text-(--text)">Sina_FN</h1>
       </motion.div>
 
       {/* Welcome Text */}

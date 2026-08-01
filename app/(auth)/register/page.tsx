@@ -107,15 +107,19 @@ export default function RegisterPage() {
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6 text-center"
+        className="mb-8 text-center"
       >
-        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-(--blue) to-(--blue-ink) p-1.5 shadow-[0_8px_24px_color-mix(in_srgb,var(--blue)_35%,transparent)]">
-          <img src="/logo-sn.png" alt="Sina_FN Logo" className="h-full w-full object-contain" />
+        <div className="relative mb-4 inline-flex items-center justify-center">
+          <img
+            src="/logo-sn.png"
+            alt="Sina_FN Logo"
+            className="h-24 w-24 object-contain filter drop-shadow-[0_8px_30px_rgba(0,122,255,0.35)] transition-transform duration-300 hover:scale-105"
+          />
         </div>
-        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-(--text)">
+        <h1 className="text-[24px] font-bold tracking-tight text-(--text)">
           สร้างบัญชีใหม่
         </h1>
-        <p className="mt-1 text-[13px] text-(--text-2)">
+        <p className="mt-1.5 text-[14px] font-medium text-(--text-2)">
           เริ่มต้นจัดการการเงินของคุณกับ Sina_FN
         </p>
       </motion.div>

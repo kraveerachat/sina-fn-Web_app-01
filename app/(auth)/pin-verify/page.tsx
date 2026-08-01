@@ -107,7 +107,7 @@ export default function PinVerifyPage() {
     document.cookie = 'pin_verified=; path=/; max-age=0';
     document.cookie = 'auth-session=; path=/; max-age=0';
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    window.location.href = '/onboarding/welcome';
   };
 
   // Hardware keyboard support

@@ -80,8 +80,8 @@ export function useAuth(): AuthState {
     document.cookie = 'auth-session=; path=/; max-age=0';
     // Sign out from Supabase (triggers onAuthStateChange → SIGNED_OUT)
     await supabase.auth.signOut();
-    // Redirect to login
-    window.location.href = '/login';
+    // Redirect to welcome onboarding
+    window.location.href = '/onboarding/welcome';
   }, []);
 
   return {

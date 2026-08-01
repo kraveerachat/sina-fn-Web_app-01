@@ -85,7 +85,7 @@ export async function proxy(request: NextRequest) {
   // ── 2. NOT AUTHENTICATED ───────────────────────────────────────────
   if (!user) {
     if (isPublicRoute(pathname)) return response;
-    return safeRedirect(request, '/login');
+    return safeRedirect(request, '/onboarding/welcome');
   }
 
   // ── 3. AUTHENTICATED — fetch profile to check PIN state ────────────
