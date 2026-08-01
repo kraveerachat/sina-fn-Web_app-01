@@ -14,7 +14,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Receipt, Plus, X, Save, Loader2, Check, CalendarDays, Wallet as WalletIcon, Layers, Repeat,
+  Receipt, Plus, X, Save, Loader2, Check, CalendarDays, Wallet as WalletIcon, Layers, Repeat, Pencil, Trash2,
 } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -22,7 +22,7 @@ import { useGSAP } from '@gsap/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useBills } from '@/hooks/useBills';
 import { useWallets } from '@/hooks/useWallets';
-import { createBill, payBillWithWallet, formatSupabaseError } from '@/lib/supabase/queries';
+import { createBill, payBillWithWallet, updateBill, deleteBill, formatSupabaseError } from '@/lib/supabase/queries';
 import { formatCurrency } from '@/lib/utils';
 import type { MonthlyBill } from '@/types';
 
@@ -55,15 +55,25 @@ export default function MonthlyBillsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Form states
+  // Add form states
   const [billType, setBillType] = useState<'recurring' | 'installment'>('recurring');
   const [newName, setNewName] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newDueDay, setNewDueDay] = useState('');
-
-  // Installment specific states
   const [totalAmountInput, setTotalAmountInput] = useState('');
   const [totalInstallmentsInput, setTotalInstallmentsInput] = useState('');
+
+  // Edit Modal state
+  const [editingBill, setEditingBill] = useState<MonthlyBill | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editBillType, setEditBillType] = useState<'recurring' | 'installment'>('recurring');
+  const [editAmount, setEditAmount] = useState('');
+  const [editTotalAmount, setEditTotalAmount] = useState('');
+  const [editTotalInstallments, setEditTotalInstallments] = useState('');
+  const [editCurrentInstallment, setEditCurrentInstallment] = useState('');
+  const [editDueDay, setEditDueDay] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Pay Modal state
   const [selectedPayBill, setSelectedPayBill] = useState<MonthlyBill | null>(null);
@@ -76,9 +86,16 @@ export default function MonthlyBillsPage() {
     const total = parseFloat(totalAmountInput);
     const count = parseInt(totalInstallmentsInput, 10);
     if (!total || !count || count <= 0) return 0;
-    // Strict precision round to 2 decimals
     return Math.round((total / count) * 100) / 100;
   }, [billType, newAmount, totalAmountInput, totalInstallmentsInput]);
+
+  const editCalculatedMonthlyAmount = useMemo(() => {
+    if (editBillType !== 'installment') return Number(editAmount) || 0;
+    const total = parseFloat(editTotalAmount);
+    const count = parseInt(editTotalInstallments, 10);
+    if (!total || !count || count <= 0) return 0;
+    return Math.round((total / count) * 100) / 100;
+  }, [editBillType, editAmount, editTotalAmount, editTotalInstallments]);
 
   const totalMonthly = useMemo(() => bills.reduce((s, b) => s + b.amount, 0), [bills]);
   const totalPaid = useMemo(() => bills.filter((b) => b.is_paid).reduce((s, b) => s + b.amount, 0), [bills]);
@@ -119,6 +136,62 @@ export default function MonthlyBillsPage() {
       console.error('[MonthlyBills] add error:', formatSupabaseError(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOpenEditModal = (bill: MonthlyBill) => {
+    setEditingBill(bill);
+    setEditName(bill.name);
+    setEditBillType(bill.bill_type ?? 'recurring');
+    setEditAmount(bill.amount ? String(bill.amount) : '');
+    setEditTotalAmount(bill.total_amount ? String(bill.total_amount) : '');
+    setEditTotalInstallments(bill.total_installments ? String(bill.total_installments) : '');
+    setEditCurrentInstallment(bill.current_installment ? String(bill.current_installment) : '1');
+    setEditDueDay(bill.due_day ? String(bill.due_day) : '');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBill || savingEdit) return;
+
+    const amount = editBillType === 'installment' ? editCalculatedMonthlyAmount : Number(editAmount);
+    if (!amount || amount <= 0) return;
+
+    try {
+      setSavingEdit(true);
+      await updateBill(editingBill.id, {
+        name: editName,
+        amount,
+        due_day: Number(editDueDay) || null,
+        bill_type: editBillType,
+        total_amount: editBillType === 'installment' ? Number(editTotalAmount) : null,
+        total_installments: editBillType === 'installment' ? Number(editTotalInstallments) : null,
+        current_installment: editBillType === 'installment' ? Number(editCurrentInstallment) : 1,
+      });
+
+      setEditingBill(null);
+      await refetch();
+      window.dispatchEvent(new Event('app_mutate'));
+    } catch (err) {
+      console.error('[MonthlyBills] edit error:', formatSupabaseError(err));
+      alert(`การแก้ไขล้มเหลว: ${formatSupabaseError(err)}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteBill = async (billId: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?')) return;
+    try {
+      setDeletingId(billId);
+      await deleteBill(billId);
+      await refetch();
+      window.dispatchEvent(new Event('app_mutate'));
+    } catch (err) {
+      console.error('[MonthlyBills] delete error:', formatSupabaseError(err));
+      alert(`การลบล้มเหลว: ${formatSupabaseError(err)}`);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -377,15 +450,34 @@ export default function MonthlyBillsPage() {
                       )}
                     </div>
 
-                    {/* Pay button */}
-                    <button
-                      onClick={() => handleOpenPayModal(bill)}
-                      disabled={isPaid}
-                      className={`press tap pill pill-sm shrink-0 ${isPaid ? 'pill-soft opacity-70 cursor-default' : 'pill-primary'}`}
-                      style={{ minWidth: 92 }}
-                    >
-                      {isPaid ? (<><Check /> จ่ายแล้ว</>) : 'จ่ายบิล'}
-                    </button>
+                    {/* Action buttons: Edit, Delete, Pay */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleOpenEditModal(bill)}
+                        title="แก้ไขรายการ"
+                        className="press tap flex h-9 w-9 items-center justify-center rounded-xl border border-(--border-2) bg-(--surface-2) text-(--text-2) transition-colors hover:border-(--blue) hover:bg-(--surface) hover:text-(--blue)"
+                      >
+                        <Pencil size={15} />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteBill(bill.id)}
+                        disabled={deletingId === bill.id}
+                        title="ลบรายการ"
+                        className="press tap flex h-9 w-9 items-center justify-center rounded-xl border border-(--border-2) bg-(--surface-2) text-(--text-2) transition-colors hover:border-(--red) hover:bg-(--red-soft) hover:text-(--red)"
+                      >
+                        {deletingId === bill.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenPayModal(bill)}
+                        disabled={isPaid}
+                        className={`press tap pill pill-sm shrink-0 ${isPaid ? 'pill-soft opacity-70 cursor-default' : 'pill-primary'}`}
+                        style={{ minWidth: 88 }}
+                      >
+                        {isPaid ? (<><Check /> จ่ายแล้ว</>) : 'จ่ายบิล'}
+                      </button>
+                    </div>
                   </motion.div>
                 );
               })}
@@ -393,6 +485,163 @@ export default function MonthlyBillsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Edit Bill Modal ── */}
+      <AnimatePresence>
+        {editingBill && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-lg rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-(--border-2)">
+                <div className="flex items-center gap-2">
+                  <Pencil size={18} className="text-(--blue)" />
+                  <h3 className="text-base font-semibold text-(--text)">แก้ไขรายการบิล</h3>
+                </div>
+                <button onClick={() => setEditingBill(null)} className="text-(--text-3) hover:text-(--text)">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="flex flex-col gap-4 py-4">
+                <div className="flex rounded-xl bg-(--surface-2) p-1 border border-(--border-2)">
+                  <button
+                    type="button"
+                    onClick={() => setEditBillType('recurring')}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${editBillType === 'recurring' ? 'bg-(--surface) text-(--text) shadow-xs' : 'text-(--text-3)'}`}
+                  >
+                    <Repeat size={13} /> บิลประจำเดือน
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditBillType('installment')}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${editBillType === 'installment' ? 'bg-(--surface) text-(--text) shadow-xs' : 'text-(--text-3)'}`}
+                  >
+                    <Layers size={13} /> ผ่อนชำระ (BNPL)
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[12.5px] font-medium text-(--text-2)">ชื่อรายการ / สินค้า</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className={inputCls}
+                    required
+                  />
+                </div>
+
+                {editBillType === 'installment' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[12.5px] font-medium text-(--text-2)">ราคาทั้งหมด (฿)</label>
+                        <input
+                          type="number"
+                          value={editTotalAmount}
+                          onChange={(e) => setEditTotalAmount(e.target.value)}
+                          className={`${inputCls} tnum`}
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[12.5px] font-medium text-(--text-2)">จำนวนงวดทั้งหมด</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={editTotalInstallments}
+                          onChange={(e) => setEditTotalInstallments(e.target.value)}
+                          className={`${inputCls} tnum`}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[12.5px] font-medium text-(--text-2)">งวดปัจจุบัน</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={Number(editTotalInstallments) || 120}
+                          value={editCurrentInstallment}
+                          onChange={(e) => setEditCurrentInstallment(e.target.value)}
+                          className={`${inputCls} tnum`}
+                          required
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[12.5px] font-medium text-(--text-2)">วันครบกำหนดชำระ</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={editDueDay}
+                          onChange={(e) => setEditDueDay(e.target.value)}
+                          className={`${inputCls} tnum`}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[12.5px] font-medium text-(--text-2)">ค่างวดต่อเดือน (คำนวณอัตโนมัติ)</label>
+                      <div className="flex items-center rounded-[14px] border border-(--border) bg-(--surface-3) px-3.5 py-2.5 text-sm font-bold text-(--blue)">
+                        {formatCurrency(editCalculatedMonthlyAmount)} / เดือน
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[12.5px] font-medium text-(--text-2)">จำนวนเงิน (฿)</label>
+                      <input
+                        type="number"
+                        value={editAmount}
+                        onChange={(e) => setEditAmount(e.target.value)}
+                        className={`${inputCls} tnum`}
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[12.5px] font-medium text-(--text-2)">วันครบกำหนดชำระ</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={editDueDay}
+                        onChange={(e) => setEditDueDay(e.target.value)}
+                        className={`${inputCls} tnum`}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 pt-3 border-t border-(--border-2)">
+                  <button
+                    type="button"
+                    onClick={() => setEditingBill(null)}
+                    className="pill pill-ghost press tap"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingEdit}
+                    className="pill pill-primary press tap min-w-[120px] justify-center"
+                  >
+                    {savingEdit ? <Loader2 className="animate-spin" /> : <><Save /> บันทึกการแก้ไข</>}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── Select Wallet & Confirm Payment Modal ── */}
       <AnimatePresence>

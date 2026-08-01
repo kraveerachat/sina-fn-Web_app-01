@@ -582,6 +582,25 @@ export async function deleteBill(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateBill(
+  id: string,
+  updates: Partial<Omit<MonthlyBill, 'id' | 'created_at' | 'updated_at'>>
+): Promise<MonthlyBill> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+  const { data, error } = await supabase
+    .from('monthly_bills')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as MonthlyBill;
+}
+
 // ── Profile Management ──
 
 /** Upload a profile avatar to Supabase Storage and return the public URL. */
