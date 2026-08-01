@@ -23,6 +23,7 @@ export interface Wallet {
   user_id: string;
   name: string;
   icon: string | null;
+  color?: string | null;
   balance: number;
   type: WalletType;
   created_at: string;

@@ -241,6 +241,7 @@ export async function createWalletWithOpeningBalance(
     name:       wallet.name,
     type:       wallet.type,
     icon:       wallet.icon,
+    ...(wallet.color ? { color: wallet.color } : {}),
     balance:    initialBalance,
     user_id:    userId,
     created_at: new Date().toISOString(),

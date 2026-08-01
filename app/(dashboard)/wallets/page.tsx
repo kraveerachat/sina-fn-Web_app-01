@@ -82,14 +82,24 @@ export default function WalletsPage() {
   // ── Add wallet — uses createWalletWithOpeningBalance for data integrity ──
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const balance = Number(newBalance);
+    const balance = parseFloat(newBalance);
     if (!newName || isNaN(balance) || !userId) return;
 
     const walletName = ((newType === 'bank' || newType === 'ewallet') && selectedBank) ? selectedBank : newName;
+    const preset = [...THAI_BANKS, ...E_WALLETS].find((b) => b.name === selectedBank || b.name === walletName);
+    const presetIcon = (preset && 'icon' in preset) ? preset.icon : typeIcon(newType);
+    const presetColor = preset?.color || null;
 
     try {
       await createWalletWithOpeningBalance(
-        { name: walletName, type: newType, balance, icon: typeIcon(newType), user_id: userId },
+        {
+          name: walletName,
+          type: newType,
+          balance,
+          icon: presetIcon,
+          color: presetColor,
+          user_id: userId,
+        },
         userId
       );
       setIsAdding(false); setNewName(''); setNewBalance(''); setNewType('bank'); setSelectedBank('');
@@ -117,11 +127,14 @@ export default function WalletsPage() {
     setSplit(null);
   };
 
-  // ── Save inline edit — TODO Phase 3: move to updateWallet() in queries.ts ──
+  // ── Save inline edit ──────────────────────────────────────────────────────
   const saveEdit = async () => {
     if (!editingId) return;
+    const numBal = parseFloat(editBalance);
+    const validBal = isNaN(numBal) ? 0 : Math.round(numBal * 100) / 100;
     const { error } = await supabase.from('wallets').update({
-      name: editName, balance: Number(editBalance),
+      name: editName,
+      balance: validBal,
       updated_at: new Date().toISOString(),
     }).eq('id', editingId);
     if (error) { console.error('Edit wallet error:', error); return; }
@@ -132,15 +145,17 @@ export default function WalletsPage() {
   // ── Open split dialog ─────────────────────────────────────────────────────
   const startSplit = (w: Wallet) => {
     setEditingId(null);
+    const half = Math.round((w.balance / 2) * 100) / 100;
+    const remainder = Math.round((w.balance - half) * 100) / 100;
     setSplit({
       walletId: w.id,
       walletName: w.name,
       originalBalance: w.balance,
       nameA: w.name,
-      balanceA: String(Math.floor(w.balance / 2)),
+      balanceA: String(half),
       typeA: w.type,
       nameB: '',
-      balanceB: String(w.balance - Math.floor(w.balance / 2)),
+      balanceB: String(remainder),
       typeB: 'cash',
     });
   };
@@ -151,12 +166,12 @@ export default function WalletsPage() {
     const { walletId, nameA, balanceA, typeA, nameB, balanceB, typeB } = split;
     if (!nameB) return;
 
-    const aBalance = Number(balanceA);
-    const bBalance = Number(balanceB);
+    const aBalance = parseFloat(balanceA) || 0;
+    const bBalance = parseFloat(balanceB) || 0;
 
     const { error: errA } = await supabase.from('wallets').update({
       name: nameA,
-      balance: aBalance,
+      balance: Math.round(aBalance * 100) / 100,
       type: typeA,
       icon: typeIcon(typeA),
       updated_at: new Date().toISOString(),
@@ -164,9 +179,20 @@ export default function WalletsPage() {
 
     if (errA) { console.error('[WalletsPage] split update A error:', errA); return; }
 
+    const presetB = [...THAI_BANKS, ...E_WALLETS].find((b) => b.name === nameB);
+    const presetBIcon = (presetB && 'icon' in presetB) ? presetB.icon : typeIcon(typeB);
+    const presetBColor = presetB?.color || null;
+
     try {
       await createWalletWithOpeningBalance(
-        { name: nameB, type: typeB, balance: bBalance, icon: typeIcon(typeB), user_id: userId },
+        {
+          name: nameB,
+          type: typeB,
+          balance: Math.round(bBalance * 100) / 100,
+          icon: presetBIcon,
+          color: presetBColor,
+          user_id: userId,
+        },
         userId
       );
     } catch (err) {
@@ -327,7 +353,7 @@ export default function WalletsPage() {
                 )}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[12.5px] font-medium text-(--text-2)">ยอดเงินเริ่มต้น (฿)</label>
-                  <input type="number" value={newBalance} onChange={(e) => setNewBalance(e.target.value)} placeholder="0.00"
+                  <input type="number" step="any" value={newBalance} onChange={(e) => setNewBalance(e.target.value)} placeholder="0.00"
                     className={`${inputCls} tnum`} required />
                 </div>
               </div>
@@ -375,10 +401,10 @@ export default function WalletsPage() {
                     <option value="bank">🏦 ธนาคาร</option><option value="cash">💵 เงินสด</option>
                     <option value="credit">💳 บัตรเครดิต</option><option value="ewallet">📱 E-Wallet</option>
                   </select>
-                  <input type="number" value={split.balanceA}
+                  <input type="number" step="any" value={split.balanceA}
                     onChange={(e) => {
-                      const a = Number(e.target.value);
-                      setSplit((s) => s ? { ...s, balanceA: e.target.value, balanceB: String(Math.max(0, s.originalBalance - a)) } : s);
+                      const a = parseFloat(e.target.value) || 0;
+                      setSplit((s) => s ? { ...s, balanceA: e.target.value, balanceB: String(Math.max(0, Math.round((s.originalBalance - a) * 100) / 100)) } : s);
                     }}
                     className={`${inputCls} tnum`} />
                 </div>
@@ -393,10 +419,10 @@ export default function WalletsPage() {
                     <option value="bank">🏦 ธนาคาร</option><option value="cash">💵 เงินสด</option>
                     <option value="credit">💳 บัตรเครดิต</option><option value="ewallet">📱 E-Wallet</option>
                   </select>
-                  <input type="number" value={split.balanceB}
+                  <input type="number" step="any" value={split.balanceB}
                     onChange={(e) => {
-                      const b = Number(e.target.value);
-                      setSplit((s) => s ? { ...s, balanceB: e.target.value, balanceA: String(Math.max(0, s.originalBalance - b)) } : s);
+                      const b = parseFloat(e.target.value) || 0;
+                      setSplit((s) => s ? { ...s, balanceB: e.target.value, balanceA: String(Math.max(0, Math.round((s.originalBalance - b) * 100) / 100)) } : s);
                     }}
                     className={`${inputCls} tnum`} />
                 </div>
@@ -464,7 +490,7 @@ export default function WalletsPage() {
                       <input value={editName} onChange={(e) => setEditName(e.target.value)}
                         className={inputCls} placeholder="ชื่อบัญชี" />
                       <div className="flex items-center gap-2">
-                        <input type="number" value={editBalance} onChange={(e) => setEditBalance(e.target.value)}
+                        <input type="number" step="any" value={editBalance} onChange={(e) => setEditBalance(e.target.value)}
                           className={`${inputCls} tnum flex-1`} />
                         <button onClick={saveEdit} aria-label="บันทึก"
                           className="press tap flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-(--green) text-white hover:brightness-105">
