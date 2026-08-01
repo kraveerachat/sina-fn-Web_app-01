@@ -26,7 +26,7 @@ export default function QuickActionsCard({ onQuickAdd }: QuickActionsCardProps) 
   ];
 
   return (
-    <div className="lift-card rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+    <div className="rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
       <p className="mb-4 text-[15px] font-semibold tracking-[-0.01em] text-(--text)">
         Quick Actions
       </p>

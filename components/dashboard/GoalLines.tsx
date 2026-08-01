@@ -23,7 +23,7 @@ export default function GoalLines({ goals }: GoalLinesProps) {
   const reduced = useReducedMotion();
 
   return (
-    <div className="lift-card flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+    <div className="flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
       <div className="mb-1 flex items-baseline justify-between">
         <span className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">
           Savings Goals
@@ -32,7 +32,7 @@ export default function GoalLines({ goals }: GoalLinesProps) {
           href="/goals"
           className="text-[13px] font-medium text-(--blue) hover:opacity-70 transition-opacity"
         >
-          View all
+          ดูทั้งหมด
         </Link>
       </div>
 

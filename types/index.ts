@@ -113,6 +113,11 @@ export interface MonthlyBill {
   created_at: string;
   updated_at: string;
   is_deleted: boolean;
+  // Installments & Enterprise AP (BNPL)
+  bill_type?: 'recurring' | 'installment';
+  total_amount?: number | null;
+  total_installments?: number | null;
+  current_installment?: number | null;
 }
 
 export interface Debt {

@@ -58,13 +58,15 @@ function WalletRow({ wallet }: { wallet: Wallet }) {
 export default function WalletCarousel({ wallets }: WalletCarouselProps) {
   if (wallets.length === 0) {
     return (
-      <div className="lift-card flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+      <div className="flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
         <SectionHeader title="Wallets" />
         <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-          <span className="mb-3 text-3xl">💳</span>
-          <p className="text-sm text-(--text-2)">No wallets yet</p>
-          <p className="mt-1 text-xs text-(--text-3)">
-            Add your first wallet to start tracking
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-(--surface-2) text-(--text-3)">
+            💳
+          </div>
+          <p className="text-sm font-medium text-(--text-2)">ยังไม่มีกระเป๋าเงิน</p>
+          <p className="mt-0.5 text-xs text-(--text-3)">
+            เพิ่มกระเป๋าเงินแรกเพื่อเริ่มต้นติดตามยอดเงิน
           </p>
         </div>
       </div>
@@ -72,7 +74,7 @@ export default function WalletCarousel({ wallets }: WalletCarouselProps) {
   }
 
   return (
-    <div className="lift-card flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+    <div className="flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
       <SectionHeader
         title="Wallets"
         action={
@@ -80,7 +82,7 @@ export default function WalletCarousel({ wallets }: WalletCarouselProps) {
             href="/wallets"
             className="text-[13px] font-medium text-(--blue) hover:opacity-70 transition-opacity"
           >
-            View all
+            ดูทั้งหมด
           </Link>
         }
       />

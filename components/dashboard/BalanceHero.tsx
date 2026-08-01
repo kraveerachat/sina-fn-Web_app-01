@@ -143,14 +143,14 @@ export default function BalanceHero({
   };
 
   return (
-    <div className="hero-blue relative flex h-full flex-col rounded-3xl px-[26px] py-6">
+    <div className="hero-blue relative flex h-full flex-col rounded-3xl px-[26px] py-6 shadow-xl transition-all duration-300">
       <div className="sheen" aria-hidden />
 
       {/* Top band: balance + actions */}
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-white/78">ยอดเงินรวม</p>
-          <p className="tnum mb-3 mt-1.5 text-[40px] font-bold leading-[1.04] tracking-[-0.035em] text-white lg:text-[50px]">
+          <p className="text-sm font-medium text-white/80">ยอดเงินรวม</p>
+          <p className="tnum mb-3 mt-1.5 font-sans text-[40px] font-bold leading-[1.04] tracking-tight text-white antialiased lg:text-[50px]">
             {formatCurrency(counted)}
           </p>
           {trendPct !== null && (
@@ -168,14 +168,14 @@ export default function BalanceHero({
         <div className="flex gap-2.5">
           <button
             onClick={onSend}
-            className="on-blue-glass press tap flex items-center gap-2 rounded-full px-[18px] py-2.5 text-sm font-medium"
+            className="on-blue-glass press tap flex items-center gap-2 rounded-full px-[18px] py-2.5 text-sm font-medium transition-all duration-300"
           >
             <ArrowUpRight size={16} />
             โอนออก
           </button>
           <button
             onClick={onRequest}
-            className="on-blue-glass press tap flex items-center gap-2 rounded-full px-[18px] py-2.5 text-sm font-medium"
+            className="on-blue-glass press tap flex items-center gap-2 rounded-full px-[18px] py-2.5 text-sm font-medium transition-all duration-300"
           >
             <ArrowDownLeft size={16} />
             ขอเงิน
@@ -189,15 +189,15 @@ export default function BalanceHero({
       </div>
 
       {/* Range segmented control */}
-      <div className="relative flex w-full rounded-full bg-white/13 p-1">
+      <div className="relative flex w-full rounded-full bg-white/10 p-1 backdrop-blur-md border border-white/10">
         {RANGES.map((r) => (
           <button
             key={r}
             onClick={() => setRange(r)}
-            className={`press flex-1 rounded-full px-2.5 py-2 text-[13px] font-semibold transition-colors duration-200 ${
+            className={`press flex-1 rounded-full px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 ${
               range === r
-                ? 'bg-white text-(--blue) shadow-[0_3px_10px_rgba(8,20,45,0.22)]'
-                : 'text-white/80 hover:text-white'
+                ? 'bg-white text-slate-900 shadow-md'
+                : 'text-white/70 hover:text-white'
             }`}
           >
             {r}

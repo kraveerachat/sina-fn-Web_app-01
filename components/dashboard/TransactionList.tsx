@@ -46,7 +46,7 @@ const rowVariants: Variants = {
 
 export default function TransactionList({ transactions }: TransactionListProps) {
   return (
-    <div className="lift-card flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+    <div className="flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
       {/* Header */}
       <div className="mb-2 flex items-baseline justify-between">
         <span className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">
@@ -56,16 +56,18 @@ export default function TransactionList({ transactions }: TransactionListProps) 
           href="/history"
           className="text-[13px] font-medium text-(--blue) hover:opacity-70 transition-opacity"
         >
-          View all
+          ดูทั้งหมด
         </Link>
       </div>
 
       {transactions.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-          <span className="mb-3 text-3xl">📝</span>
-          <p className="text-sm text-(--text-2)">No transactions yet</p>
-          <p className="mt-1 text-xs text-(--text-3)">
-            Tap Quick Add to record your first entry
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-(--surface-2) text-(--text-3)">
+            📝
+          </div>
+          <p className="text-sm font-medium text-(--text-2)">ยังไม่มีรายการธุรกรรม</p>
+          <p className="mt-0.5 text-xs text-(--text-3)">
+            กดปุ่มบวกเพื่อเพิ่มรายการแรกของคุณ
           </p>
         </div>
       ) : (

@@ -102,13 +102,13 @@ export default function DashboardPage() {
         onEnter: (batch) => {
           gsap.fromTo(
             batch,
-            { y: 20, opacity: 0 },
+            { y: 12, opacity: 0 },
             {
               y: 0,
               opacity: 1,
-              duration: 0.5,
-              ease: 'power3.out',
-              stagger: 0.05,
+              duration: 0.35,
+              ease: 'power2.out',
+              stagger: 0.06,
               overwrite: 'auto',
               clearProps: 'transform',
             }
@@ -146,15 +146,15 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Dashboard bento with DoF effect while chat is open */}
+      {/* Dashboard bento with DoF effect while chat is open & pb-36 for FloatingDock clearance */}
       <div
         ref={dashboardRef}
-        className={`bento dashboard-dof ${
+        className={`bento pb-36 dashboard-dof ${
           aiChatOpen ? 'dashboard-dof--active' : ''
         }`}
       >
         {/* Balance Hero — trend chart + range control + send/request */}
-        <div className="dashboard-section hero-glow cell-8">
+        <div className="dashboard-section cell-8 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl rounded-3xl">
           <BalanceHero
             totalBalance={totalBalance}
             transactions={transactions}
@@ -164,7 +164,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Spending donut — narrow vertical cell */}
-        <div className="dashboard-section cell-4 rounded-3xl glow-ambient glow-ambient-blue glow-ambient-hover">
+        <div className="dashboard-section cell-4 rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl">
           <SpendingBreakdown
             donutSegments={donutSegments}
             spendingByCategory={spendingByCategory}
@@ -173,33 +173,33 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Wallets — narrow left cell (mirrors the prototype) */}
-        <div className="dashboard-section cell-4 rounded-3xl glow-ambient glow-ambient-blue glow-ambient-hover">
+        {/* Wallets — narrow left cell */}
+        <div className="dashboard-section cell-4 rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl">
           <WalletCarousel wallets={wallets} />
         </div>
 
         {/* Cash flow — last 7 days */}
-        <div className="dashboard-section cell-8 rounded-3xl glow-ambient glow-ambient-green glow-ambient-hover">
+        <div className="dashboard-section cell-8 rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl">
           <CashFlowCard transactions={transactions} />
         </div>
 
         {/* Recent transactions — tall left column */}
-        <div className="dashboard-section cell-7 rounded-3xl glow-ambient glow-ambient-neutral glow-ambient-hover">
+        <div className="dashboard-section cell-7 rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl">
           <TransactionList transactions={recentTx} />
         </div>
 
         {/* Goals + quick actions — stacked right column */}
         <div className="dashboard-section cell-5 flex flex-col gap-4">
-          <div className="rounded-3xl glow-ambient glow-ambient-gold glow-ambient-hover">
+          <div className="rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl">
             <GoalLines goals={goals.slice(0, 3)} />
           </div>
-          <div className="rounded-3xl glow-ambient glow-ambient-gold glow-ambient-hover">
+          <div className="rounded-3xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl">
             <QuickActionsCard onQuickAdd={openQuickAdd} />
           </div>
         </div>
 
         {/* Footer */}
-        <p className="cell-12 mt-2 text-center text-[12.5px] text-(--text-3)">
+        <p className="cell-12 mt-4 text-center text-[12.5px] text-(--text-3)">
           Sina_FN · Personal Finance
         </p>
       </div>

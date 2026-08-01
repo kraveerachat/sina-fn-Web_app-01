@@ -497,6 +497,10 @@ export async function getMonthlyBills(userId: string): Promise<MonthlyBill[]> {
     due_day: b.due_day ?? 1,
     is_paid: b.is_paid ?? false,
     is_deleted: b.is_deleted ?? false,
+    bill_type: b.bill_type ?? 'recurring',
+    total_amount: b.total_amount ?? null,
+    total_installments: b.total_installments ?? null,
+    current_installment: b.current_installment ?? 1,
   })) as MonthlyBill[];
 }
 
@@ -509,18 +513,42 @@ export async function createBill(
   const { data, error } = await supabase
     .from('monthly_bills')
     .insert([{
-      user_id:  userId,
-      name:     bill.name,
-      amount:   bill.amount,
-      due_day:  bill.due_day ?? 1,
-      is_paid:  false,
-      is_deleted: false,
+      user_id:             userId,
+      name:                bill.name,
+      amount:              bill.amount,
+      due_day:             bill.due_day ?? 1,
+      is_paid:             false,
+      is_deleted:          false,
+      bill_type:           bill.bill_type ?? 'recurring',
+      total_amount:        bill.total_amount ?? null,
+      total_installments:   bill.total_installments ?? null,
+      current_installment: bill.current_installment ?? 1,
     }])
     .select()
     .single();
 
-  if (error) throw new Error(`createBill failed: ${formatSupabaseError(error)}`);
+  if (error) throw error;
   return data as MonthlyBill;
+}
+
+export async function payBillWithWallet(
+  billId: string,
+  walletId: string,
+  amountToDeduct: number,
+  userId: string
+): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error('Supabase not configured');
+
+  const { error } = await supabase.rpc('pay_bill_and_deduct_wallet', {
+    p_bill_id:          billId,
+    p_wallet_id:        walletId,
+    p_amount_to_deduct: amountToDeduct,
+    p_user_id:          userId,
+  });
+
+  if (error) {
+    throw new Error(`payBillWithWallet failed: ${formatSupabaseError(error)}`);
+  }
 }
 
 export async function toggleBillPaid(id: string): Promise<boolean> {

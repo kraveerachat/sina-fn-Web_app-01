@@ -21,7 +21,7 @@ import { formatCurrency } from '@/lib/utils';
 import type { Wallet } from '@/types';
 import { supabase } from '@/lib/supabase/client';
 import { createWalletWithOpeningBalance, deleteWallet, formatSupabaseError } from '@/lib/supabase/queries';
-import { THAI_BANKS, getWalletVisuals } from '@/lib/banks';
+import { THAI_BANKS, E_WALLETS, getWalletVisuals } from '@/lib/banks';
 import WalletIconDisplay from '@/components/ui/WalletIconDisplay';
 import { useAuth }   from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
@@ -85,7 +85,7 @@ export default function WalletsPage() {
     const balance = Number(newBalance);
     if (!newName || isNaN(balance) || !userId) return;
 
-    const walletName = (newType === 'bank' && selectedBank) ? selectedBank : newName;
+    const walletName = ((newType === 'bank' || newType === 'ewallet') && selectedBank) ? selectedBank : newName;
 
     try {
       await createWalletWithOpeningBalance(
@@ -303,6 +303,24 @@ export default function WalletsPage() {
                       <option value="">— ระบุชื่อเอง —</option>
                       {THAI_BANKS.map((b) => (
                         <option key={b.name} value={b.name}>{b.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {newType === 'ewallet' && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[12.5px] font-medium text-(--text-2)">เลือก E-Wallet</label>
+                    <select
+                      value={selectedBank}
+                      onChange={(e) => {
+                        setSelectedBank(e.target.value);
+                        if (e.target.value) setNewName(e.target.value);
+                      }}
+                      className={inputCls}
+                    >
+                      <option value="">— ระบุชื่อเอง —</option>
+                      {E_WALLETS.map((w) => (
+                        <option key={w.name} value={w.name}>{w.label}</option>
                       ))}
                     </select>
                   </div>

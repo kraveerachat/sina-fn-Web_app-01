@@ -33,11 +33,26 @@ export default function SpendingBreakdown({
 
   if (totalSpending <= 0) {
     return (
-      <div className="lift-card flex min-h-[260px] flex-col items-center justify-center rounded-3xl border border-(--border) bg-(--surface) p-8 shadow-(--shadow)">
-        <span className="mb-3 text-3xl">📊</span>
-        <p className="text-sm text-(--text-2)">No spending this month</p>
-        <p className="mt-1 text-xs text-(--text-3)">
-          Your category breakdown will appear here
+      <div className="flex h-full min-h-[260px] flex-col items-center justify-center rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-(--shadow)">
+        <div className="relative mb-3 flex h-24 w-24 items-center justify-center">
+          <svg viewBox="0 0 100 100" className="h-full w-full">
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke="var(--surface-3)"
+              strokeWidth="5"
+              strokeDasharray="4 4"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold tracking-wider text-(--text-3)">
+            0.00
+          </div>
+        </div>
+        <p className="text-sm font-medium text-(--text-2)">ยังไม่มีรายจ่ายในเดือนนี้</p>
+        <p className="mt-0.5 text-xs text-(--text-3)">
+          สัดส่วนรายจ่ายตามหมวดหมู่จะแสดงขึ้นที่นี่
         </p>
       </div>
     );
@@ -65,7 +80,7 @@ export default function SpendingBreakdown({
   ).items;
 
   return (
-    <div className="lift-card h-full min-h-[260px] rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-(--shadow)">
+    <div className="h-full min-h-[260px] rounded-3xl border border-(--border) bg-(--surface) p-6 shadow-(--shadow)">
       {vertical && (
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">

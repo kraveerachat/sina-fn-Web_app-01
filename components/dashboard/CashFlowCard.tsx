@@ -60,7 +60,7 @@ export default function CashFlowCard({ transactions }: CashFlowCardProps) {
   const isEmpty = totalIn === 0 && totalOut === 0;
 
   return (
-    <div className="lift-card flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
+    <div className="flex h-full flex-col rounded-3xl border border-(--border) bg-(--surface) p-5 shadow-(--shadow)">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <p className="text-[15px] font-semibold tracking-[-0.01em] text-(--text)">
@@ -86,8 +86,10 @@ export default function CashFlowCard({ transactions }: CashFlowCardProps) {
 
       {isEmpty ? (
         <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-          <span className="mb-2 text-2xl">💤</span>
-          <p className="text-sm text-(--text-2)">ยังไม่มีรายการใน 7 วันนี้</p>
+          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-(--surface-2) text-(--text-3)">
+            📊
+          </div>
+          <p className="text-sm font-medium text-(--text-2)">ยังไม่มีรายการใน 7 วันนี้</p>
         </div>
       ) : (
         <CashFlowBars days={days} />

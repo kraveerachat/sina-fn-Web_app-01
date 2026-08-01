@@ -35,6 +35,51 @@ export const THAI_BANKS: BankDef[] = [
   { label: 'CIMB',                name: 'CIMB',     color: '#BB2027', logoPath: '/banks/cimb.png',     keywords: ['cimb'] },
 ];
 
+// ── E-Wallet definitions ──────────────────────────────────────────
+export interface EWalletDef {
+  id: string;
+  label: string;
+  name: string;
+  shortName: string;
+  color: string;
+  icon: string;
+  keywords: string[];
+  type: 'ewallet';
+}
+
+export const E_WALLETS: EWalletDef[] = [
+  {
+    id: 'truemoney',
+    label: 'TrueMoney Wallet',
+    name: 'TrueMoney Wallet',
+    shortName: 'TrueMoney',
+    color: '#FF7A00', // TrueMoney Orange
+    icon: 'Wallet',
+    keywords: ['truemoney', 'true money', 'ทรูมูฟ', 'ทรูมันนี่', 'true wallet', 'truemoney wallet'],
+    type: 'ewallet'
+  },
+  {
+    id: 'shopeepay',
+    label: 'ShopeePay',
+    name: 'ShopeePay',
+    shortName: 'ShopeePay',
+    color: '#EE4D2D', // ShopeePay Orange/Red
+    icon: 'SmartphoneNfc',
+    keywords: ['shopeepay', 'shopee pay', 'ช้อปปี้เพย์', 'airpay'],
+    type: 'ewallet'
+  },
+  {
+    id: 'rabbitlinepay',
+    label: 'Rabbit LINE Pay',
+    name: 'Rabbit LINE Pay',
+    shortName: 'LINE Pay',
+    color: '#00C300', // LINE Green
+    icon: 'Smartphone',
+    keywords: ['rabbit line pay', 'line pay', 'แรบบิท ไลน์ เพย์', 'linepay'],
+    type: 'ewallet'
+  }
+];
+
 // ── Wallet visual result ───────────────────────────────────────────
 export interface WalletVisuals {
   /** Lucide icon — used as fallback for non-bank wallets */
@@ -52,7 +97,7 @@ const TYPE_DEFAULTS: Record<string, WalletVisuals> = {
   bank:    { icon: Landmark,   color: '#60A5FA' },
   cash:    { icon: Banknote,   color: '#34D399' },
   credit:  { icon: CreditCard, color: '#FBBF24' },
-  ewallet: { icon: Smartphone, color: '#8B8CF8' },
+  ewallet: { icon: Smartphone, color: '#FF7A00' },
   savings: { icon: Landmark,   color: '#2DD4BF' },
 };
 
@@ -60,17 +105,16 @@ const TYPE_DEFAULTS: Record<string, WalletVisuals> = {
  * Returns visual metadata for any wallet.
  *
  * - Bank wallets: keyword-matches wallet.name → returns brand color + logoPath.
+ * - E-Wallets: keyword-matches wallet.name → returns brand color (e.g. TrueMoney #FF7A00, ShopeePay #EE4D2D).
  * - Other types: returns a generic colored Lucide icon (no logoPath).
- *
- * The caller should render <Image src={logoPath} /> when logoPath is truthy,
- * and fall back to <Icon /> otherwise.
  */
 export function getWalletVisuals(
   walletName: string,
   walletType: string
 ): WalletVisuals {
+  const lower = walletName.toLowerCase();
+
   if (walletType === 'bank') {
-    const lower = walletName.toLowerCase();
     const match = THAI_BANKS.find((b) =>
       b.keywords.some((kw) => lower.includes(kw))
     );
@@ -83,5 +127,18 @@ export function getWalletVisuals(
       };
     }
   }
+
+  // Check E-Wallets by keywords or name match
+  const eMatch = E_WALLETS.find((w) =>
+    w.keywords.some((kw) => lower.includes(kw))
+  );
+  if (eMatch) {
+    return {
+      icon:      Smartphone,
+      color:     eMatch.color,
+      bankLabel: eMatch.label,
+    };
+  }
+
   return TYPE_DEFAULTS[walletType] ?? { icon: Wallet, color: '#9CA3AF' };
 }
