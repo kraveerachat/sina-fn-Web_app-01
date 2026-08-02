@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Mail, ArrowRight, Loader2, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, Lock, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import CyberButton from '@/components/ui/CyberButton';
 import CyberInput from '@/components/ui/CyberInput';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAppStore } from '@/store/appStore';
 
 type OAuthProvider = 'google' | 'facebook';
 
-// Brand glyphs (lucide ships no brand logos). Declared at module level so
-// they keep a stable identity and never remount the buttons.
 function GoogleIcon() {
   return (
     <svg width={16} height={16} viewBox="0 0 24 24" aria-hidden="true">
@@ -37,6 +37,10 @@ function FacebookIcon() {
 
 export default function LoginPage() {
   const setUserProfile = useAppStore((state) => state.setUserProfile);
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [lang, setLang] = useState<'TH' | 'EN'>('TH');
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -44,21 +48,34 @@ export default function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = resolvedTheme === 'dark';
+
+  const toggleLanguage = () => {
+    setLang((prev) => (prev === 'TH' ? 'EN' : 'TH'));
+  };
+
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('กรุณากรอกข้อมูลให้ครบถ้วน');
+      setError(lang === 'TH' ? 'กรุณากรอกข้อมูลให้ครบถ้วน' : 'Please fill in all fields');
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(lang === 'TH' ? 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' : 'Password must be at least 6 characters');
       return;
     }
     try {
       setIsLoading(true);
       setError('');
 
-      // 1. Supabase Auth Login
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -67,28 +84,16 @@ export default function LoginPage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Login failed, no user returned.');
 
-      // 2. Clear stale PIN session cookie (force re-verify)
       document.cookie = 'pin_verified=; path=/; max-age=0';
-
-      // 3. Sync local store
       setUserProfile({ name: email.split('@')[0], email: authData.user.email });
 
-      // 4. Redirect to dashboard — proxy.ts handles the gate logic:
-      //    • No PIN set → /onboarding/pin-setup
-      //    • PIN set, no cookie → /pin-verify
-      //    • Fully verified → /
       window.location.href = '/';
-
-
     } catch (err: unknown) {
       setError((err as Error).message || 'Invalid credentials');
       setIsLoading(false);
     }
   };
 
-  // OAuth (Google / Facebook). signInWithOAuth performs a full-page redirect
-  // to the provider, then back to redirectTo where the code is exchanged for
-  // a session. We don't reset oauthLoading on success because the page leaves.
   const handleOAuth = async (provider: OAuthProvider) => {
     if (oauthLoading || isLoading) return;
     setError('');
@@ -99,7 +104,6 @@ export default function LoginPage() {
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (oauthError) throw oauthError;
-      // success → browser is redirecting; leave the spinner running.
     } catch (err: unknown) {
       setError((err as Error).message || `ไม่สามารถเข้าสู่ระบบด้วย ${provider} ได้`);
       setOauthLoading(null);
@@ -107,144 +111,203 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-md">
-      {/* Logo / Brand */}
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8 text-center"
-      >
-        <div className="relative mb-4 inline-flex items-center justify-center">
-          <img
-            src="/logo-sn.png"
-            alt="Sina_FN Logo"
-            className="h-24 w-24 object-contain filter drop-shadow-[0_8px_30px_rgba(0,122,255,0.35)] transition-transform duration-300 hover:scale-105"
-          />
-        </div>
-        <h1 className="text-[24px] font-bold tracking-tight text-(--text)">
-          Sina_FN
-        </h1>
-        <p className="mt-1.5 text-[14px] font-medium text-(--text-2)">Personal Finance</p>
-      </motion.div>
-
-      {/* Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="rounded-3xl border border-(--border) bg-(--surface) p-8 shadow-(--shadow-lg)"
-      >
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-(--text)">
-              เข้าสู่ระบบ
-            </h2>
-            <p className="mt-0.5 text-[13px] text-(--text-3)">
-              ลงชื่อเข้าใช้เพื่อจัดการการเงินของคุณ
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <CyberInput
-              type="text"
-              placeholder="Username or Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              icon={<Mail size={16} />}
-            />
-
-            <CyberInput
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              icon={<Lock size={16} />}
-              rightElement={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="text-(--text-3) hover:text-(--text) transition-colors"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-xl border border-(--red)/25 bg-(--red-soft) p-3 text-[13px] text-(--red)">
-              {error}
-            </p>
-          )}
-
-          <CyberButton
-            variant="primary"
-            fullWidth
-            glow
-            size="lg"
-            type="submit"
-            icon={
-              isLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <ArrowRight size={16} />
-              )
-            }
-            disabled={isLoading || oauthLoading !== null}
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-white dark:bg-[#0A0A0A]">
+      {/* TOP-RIGHT CONTROLS (Theme & Language) */}
+      {mounted && (
+        <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+          {/* Language Toggle */}
+          <button
+            onClick={toggleLanguage}
+            type="button"
+            className="px-3.5 py-1.5 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-xs font-semibold text-neutral-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
           >
-            {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-          </CyberButton>
+            {lang}
+          </button>
 
-          {/* OAuth providers */}
-          <div className="flex items-center gap-3 pt-1">
-            <span className="h-px flex-1 bg-(--border)" />
-            <span className="text-[12px] text-(--text-3)">หรือดำเนินการต่อด้วย</span>
-            <span className="h-px flex-1 bg-(--border)" />
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            type="button"
+            aria-label="Toggle theme"
+            className="p-2 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-neutral-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+        </div>
+      )}
+
+      {/* BACKGROUND IMAGE LAYER (Matching Welcome Screen, No Overlays) */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+        {mounted && (
+          <Image
+            src={
+              isDark
+                ? '/assets/images/welcome/WELCOME_SINA_FN_4K_DarkMode.png'
+                : '/assets/images/welcome/WELCOME_SINA_FN_4K_LightMode.png'
+            }
+            alt="Sina_FN Background"
+            fill
+            priority
+            style={{ objectFit: 'cover' }}
+          />
+        )}
+      </div>
+
+      {/* AUTH CONTAINER & GLASSMORPHIC CARD */}
+      <div className="relative z-10 w-full max-w-md my-auto">
+        {/* Logo / Brand */}
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 text-center"
+        >
+          <div className="relative mb-3 inline-flex items-center justify-center">
+            <img
+              src="/logo-sn.png"
+              alt="Sina_FN Logo"
+              className="h-20 w-20 object-contain filter drop-shadow-[0_8px_30px_rgba(0,122,255,0.4)] transition-transform duration-300 hover:scale-105"
+            />
           </div>
+          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900 dark:text-white drop-shadow-sm">
+            Sina_FN
+          </h1>
+          <p className="mt-1 text-[13px] font-medium text-neutral-700 dark:text-neutral-300">
+            Personal Finance
+          </p>
+        </motion.div>
 
-          <div className="grid grid-cols-2 gap-3">
+        {/* Glassmorphic Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="rounded-3xl border border-white/30 dark:border-white/15 bg-white/20 dark:bg-black/40 backdrop-blur-2xl p-8 shadow-2xl"
+        >
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <h2 className="text-[18px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+                {lang === 'TH' ? 'เข้าสู่ระบบ' : 'Sign In'}
+              </h2>
+              <p className="mt-0.5 text-[13px] text-neutral-600 dark:text-neutral-300">
+                {lang === 'TH'
+                  ? 'ลงชื่อเข้าใช้เพื่อจัดการการเงินของคุณ'
+                  : 'Sign in to manage your financial portfolio'}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <CyberInput
+                type="text"
+                placeholder={lang === 'TH' ? 'ชื่อผู้ใช้ หรือ อีเมล' : 'Username or Email'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                icon={<Mail size={16} />}
+              />
+
+              <CyberInput
+                type={showPassword ? 'text' : 'password'}
+                placeholder={lang === 'TH' ? 'รหัสผ่าน' : 'Password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={<Lock size={16} />}
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-[13px] text-red-600 dark:text-red-400">
+                {error}
+              </p>
+            )}
+
             <CyberButton
-              variant="outline"
-              size="md"
+              variant="primary"
               fullWidth
-              type="button"
-              icon={<FacebookIcon />}
-              loading={oauthLoading === 'facebook'}
+              glow
+              size="lg"
+              type="submit"
+              icon={
+                isLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <ArrowRight size={16} />
+                )
+              }
               disabled={isLoading || oauthLoading !== null}
-              onClick={() => handleOAuth('facebook')}
             >
-              Facebook
+              {isLoading
+                ? lang === 'TH'
+                  ? 'กำลังเข้าสู่ระบบ...'
+                  : 'Signing in...'
+                : lang === 'TH'
+                ? 'เข้าสู่ระบบ'
+                : 'Sign In'}
             </CyberButton>
-            <CyberButton
-              variant="outline"
-              size="md"
-              fullWidth
-              type="button"
-              icon={<GoogleIcon />}
-              loading={oauthLoading === 'google'}
-              disabled={isLoading || oauthLoading !== null}
-              onClick={() => handleOAuth('google')}
-            >
-              Google
-            </CyberButton>
-          </div>
 
-          <div className="mt-4 border-t border-(--border-2) pt-4 text-center">
-            <Link
-              href="/register"
-              className="text-[13px] text-(--text-2) hover:text-(--blue) transition-colors"
-            >
-              ยังไม่มีบัญชี? <span className="font-medium text-(--blue)">สมัครสมาชิก</span>
-            </Link>
-          </div>
-        </form>
-      </motion.div>
+            {/* OAuth providers */}
+            <div className="flex items-center gap-3 pt-1">
+              <span className="h-px flex-1 bg-white/20 dark:bg-white/10" />
+              <span className="text-[12px] text-neutral-600 dark:text-neutral-400">
+                {lang === 'TH' ? 'หรือดำเนินการต่อด้วย' : 'Or continue with'}
+              </span>
+              <span className="h-px flex-1 bg-white/20 dark:bg-white/10" />
+            </div>
 
-      {/* Footer */}
-      <p className="mt-6 text-center text-xs text-(--text-3)">
-        Secured by Supabase Auth
-      </p>
+            <div className="grid grid-cols-2 gap-3">
+              <CyberButton
+                variant="outline"
+                size="md"
+                fullWidth
+                type="button"
+                icon={<FacebookIcon />}
+                loading={oauthLoading === 'facebook'}
+                disabled={isLoading || oauthLoading !== null}
+                onClick={() => handleOAuth('facebook')}
+              >
+                Facebook
+              </CyberButton>
+              <CyberButton
+                variant="outline"
+                size="md"
+                fullWidth
+                type="button"
+                icon={<GoogleIcon />}
+                loading={oauthLoading === 'google'}
+                disabled={isLoading || oauthLoading !== null}
+                onClick={() => handleOAuth('google')}
+              >
+                Google
+              </CyberButton>
+            </div>
+
+            <div className="mt-4 border-t border-white/20 dark:border-white/10 pt-4 text-center">
+              <Link
+                href="/register"
+                className="text-[13px] text-neutral-700 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {lang === 'TH' ? 'ยังไม่มีบัญชี?' : "Don't have an account?"}{' '}
+                <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  {lang === 'TH' ? 'สมัครสมาชิก' : 'Sign Up'}
+                </span>
+              </Link>
+            </div>
+          </form>
+        </motion.div>
+
+        {/* Footer */}
+        <p className="mt-6 text-center text-xs text-neutral-600 dark:text-neutral-400">
+          Secured by Supabase Auth
+        </p>
+      </div>
     </div>
   );
 }
