@@ -17,14 +17,19 @@ export default function WelcomePage() {
     setMounted(true);
   }, []);
 
-  const isDark = resolvedTheme === "dark";
+  const bgImage =
+    mounted && resolvedTheme === "dark"
+      ? "/assets/images/welcome/WELCOME_SINA_FN_4K_DarkMode.png"
+      : "/assets/images/welcome/WELCOME_SINA_FN_4K_LightMode.png";
+
+  const isDark = mounted && resolvedTheme === "dark";
 
   const toggleLanguage = () => {
     setLang((prev) => (prev === "TH" ? "EN" : "TH"));
   };
 
   const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   return (
@@ -36,7 +41,7 @@ export default function WelcomePage() {
           <button
             onClick={toggleLanguage}
             type="button"
-            className="px-3.5 py-1.5 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-xs font-semibold text-neutral-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
+            className="px-3.5 py-1.5 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-xs font-semibold text-slate-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
           >
             {lang}
           </button>
@@ -46,7 +51,7 @@ export default function WelcomePage() {
             onClick={toggleTheme}
             type="button"
             aria-label="Toggle theme"
-            className="p-2 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-neutral-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
+            className="p-2 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-slate-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
@@ -57,16 +62,12 @@ export default function WelcomePage() {
       <div className="absolute inset-0 w-full h-full">
         {mounted && (
           <Image
-            src={
-              isDark
-                ? "/assets/images/welcome/WELCOME_SINA_FN_4K_DarkMode.png"
-                : "/assets/images/welcome/WELCOME_SINA_FN_4K_LightMode.png"
-            }
+            src={bgImage}
             alt="Sina_FN Welcome"
             fill
             priority
             style={{ objectFit: "cover" }}
-            className="pointer-events-none"
+            className="pointer-events-none transition-opacity duration-300"
           />
         )}
       </div>
@@ -89,7 +90,7 @@ export default function WelcomePage() {
         <button
           onClick={() => router.push("/login")}
           type="button"
-          className="w-full rounded-full py-3.5 px-6 font-medium text-neutral-900 dark:text-neutral-100 bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 hover:bg-white/30 dark:hover:bg-black/40 transition-colors text-center cursor-pointer text-base"
+          className="w-full rounded-full py-3.5 px-6 font-medium text-slate-900 dark:text-neutral-100 bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 hover:bg-white/30 dark:hover:bg-black/40 transition-colors text-center cursor-pointer text-base"
         >
           {lang === "TH" ? "เข้าสู่ระบบสำหรับสมาชิกเดิม" : "Sign In for Existing Users"}
         </button>

@@ -50,14 +50,18 @@ export default function LoginPage() {
     setMounted(true);
   }, []);
 
-  const isDark = resolvedTheme === 'dark';
+  const bgImage = mounted && resolvedTheme === 'dark'
+    ? '/assets/images/welcome/WELCOME_SINA_FN_4K_DarkMode.png'
+    : '/assets/images/welcome/WELCOME_SINA_FN_4K_LightMode.png';
+
+  const isDark = mounted && resolvedTheme === 'dark';
 
   const toggleLanguage = () => {
     setLang((prev) => (prev === 'TH' ? 'EN' : 'TH'));
   };
 
   const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -110,7 +114,7 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-white dark:bg-[#0A0A0A]">
-      {/* REQUIREMENT 1: HYDRATION-SAFE THEME TOGGLE & CONTROLS */}
+      {/* HYDRATION-SAFE THEME TOGGLE & CONTROLS */}
       {mounted && (
         <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
           {/* Language Toggle */}
@@ -134,24 +138,21 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* REQUIREMENT 2: DYNAMIC DUAL-THEME BACKGROUND IMAGE (NO OVERLAYS) */}
+      {/* DYNAMIC DUAL-THEME BACKGROUND IMAGE (NO OVERLAYS) */}
       <div className="absolute inset-0 w-full h-full pointer-events-none">
         {mounted && (
           <Image
-            src={
-              isDark
-                ? '/assets/images/welcome/WELCOME_SINA_FN_4K_DarkMode.png'
-                : '/assets/images/welcome/WELCOME_SINA_FN_4K_LightMode.png'
-            }
+            src={bgImage}
             alt="Sina_FN Background"
             fill
             priority
             style={{ objectFit: 'cover' }}
+            className="transition-opacity duration-300"
           />
         )}
       </div>
 
-      {/* REQUIREMENT 3: ENTERPRISE GLASSMORPHISM CARD REFACTOR */}
+      {/* ENTERPRISE GLASSMORPHISM CARD REFACTOR */}
       <div className="relative z-10 w-full max-w-md my-auto">
         {/* LOGO ENHANCEMENT */}
         <motion.div
