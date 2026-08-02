@@ -32,7 +32,7 @@ import type { NextRequest } from 'next/server';
 
 // ── Route classification ─────────────────────────────────────────
 // Public: accessible WITHOUT a session (pre-login & pre-register)
-const PUBLIC_ROUTES = ['/login', '/register', '/onboarding/welcome', '/welcome'];
+const PUBLIC_ROUTES = ['/login', '/register', '/onboarding/welcome'];
 
 function isPublicRoute(p: string)    { return PUBLIC_ROUTES.includes(p); }
 function isPinSetupRoute(p: string)  { return p === '/onboarding/pin-setup'; }
@@ -84,15 +84,8 @@ export async function proxy(request: NextRequest) {
 
   // ── 2. NOT AUTHENTICATED ───────────────────────────────────────────
   if (!user) {
-    const hasWelcomedCookie = request.cookies.get('sina_welcomed')?.value === 'true';
-
-    // First time visitor without sina_welcomed cookie -> redirect to /welcome
-    if (!hasWelcomedCookie && pathname !== '/welcome') {
-      return safeRedirect(request, '/welcome');
-    }
-
     if (isPublicRoute(pathname)) return response;
-    return safeRedirect(request, '/login');
+    return safeRedirect(request, '/onboarding/welcome');
   }
 
   // ── 3. AUTHENTICATED — fetch profile to check PIN state ────────────
