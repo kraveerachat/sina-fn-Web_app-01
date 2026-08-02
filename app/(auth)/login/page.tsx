@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Mail, ArrowRight, Loader2, Lock, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import CyberButton from '@/components/ui/CyberButton';
-import CyberInput from '@/components/ui/CyberInput';
 import { supabase } from '@/lib/supabase/client';
 import { useAppStore } from '@/store/appStore';
 
@@ -112,14 +110,14 @@ export default function LoginPage() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 bg-white dark:bg-[#0A0A0A]">
-      {/* TOP-RIGHT CONTROLS (Theme & Language) */}
+      {/* REQUIREMENT 1: HYDRATION-SAFE THEME TOGGLE & CONTROLS */}
       {mounted && (
         <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
           {/* Language Toggle */}
           <button
             onClick={toggleLanguage}
             type="button"
-            className="px-3.5 py-1.5 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-xs font-semibold text-neutral-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
+            className="px-3.5 py-1.5 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-xs font-semibold text-slate-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
           >
             {lang}
           </button>
@@ -129,14 +127,14 @@ export default function LoginPage() {
             onClick={toggleTheme}
             type="button"
             aria-label="Toggle theme"
-            className="p-2 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-neutral-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
+            className="p-2 rounded-full bg-white/20 dark:bg-black/30 backdrop-blur-md border border-white/30 dark:border-white/15 text-slate-800 dark:text-neutral-100 hover:bg-white/30 dark:hover:bg-black/40 transition-all cursor-pointer shadow-sm"
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         </div>
       )}
 
-      {/* BACKGROUND IMAGE LAYER (Matching Welcome Screen, No Overlays) */}
+      {/* REQUIREMENT 2: DYNAMIC DUAL-THEME BACKGROUND IMAGE (NO OVERLAYS) */}
       <div className="absolute inset-0 w-full h-full pointer-events-none">
         {mounted && (
           <Image
@@ -153,9 +151,9 @@ export default function LoginPage() {
         )}
       </div>
 
-      {/* AUTH CONTAINER & GLASSMORPHIC CARD */}
+      {/* REQUIREMENT 3: ENTERPRISE GLASSMORPHISM CARD REFACTOR */}
       <div className="relative z-10 w-full max-w-md my-auto">
-        {/* Logo / Brand */}
+        {/* LOGO ENHANCEMENT */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -165,62 +163,75 @@ export default function LoginPage() {
             <img
               src="/logo-sn.png"
               alt="Sina_FN Logo"
-              className="h-20 w-20 object-contain filter drop-shadow-[0_8px_30px_rgba(0,122,255,0.4)] transition-transform duration-300 hover:scale-105"
+              className="h-20 w-20 object-contain filter drop-shadow-[0_4px_20px_rgba(59,130,246,0.35)] transition-transform duration-300 hover:scale-105"
             />
           </div>
-          <h1 className="text-[26px] font-bold tracking-tight text-neutral-900 dark:text-white drop-shadow-sm">
+          <h1 className="text-[26px] font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
             Sina_FN
           </h1>
-          <p className="mt-1 text-[13px] font-medium text-neutral-700 dark:text-neutral-300">
+          <p className="mt-1 text-[13px] font-medium text-slate-600 dark:text-neutral-400">
             Personal Finance
           </p>
         </motion.div>
 
-        {/* Glassmorphic Card */}
+        {/* Adaptive Glassmorphic Card */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="rounded-3xl border border-white/30 dark:border-white/15 bg-white/20 dark:bg-black/40 backdrop-blur-2xl p-8 shadow-2xl"
+          className="max-w-md w-full p-8 rounded-3xl transition-all duration-300 bg-white/50 dark:bg-black/50 backdrop-blur-2xl border border-white/60 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
         >
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <h2 className="text-[18px] font-semibold tracking-tight text-neutral-900 dark:text-white">
+              <h2 className="text-[18px] font-semibold tracking-tight text-slate-900 dark:text-white">
                 {lang === 'TH' ? 'เข้าสู่ระบบ' : 'Sign In'}
               </h2>
-              <p className="mt-0.5 text-[13px] text-neutral-600 dark:text-neutral-300">
+              <p className="mt-0.5 text-[13px] text-slate-600 dark:text-neutral-400">
                 {lang === 'TH'
                   ? 'ลงชื่อเข้าใช้เพื่อจัดการการเงินของคุณ'
                   : 'Sign in to manage your financial portfolio'}
               </p>
             </div>
 
+            {/* Translucent Adaptive Input Fields */}
             <div className="space-y-4">
-              <CyberInput
-                type="text"
-                placeholder={lang === 'TH' ? 'ชื่อผู้ใช้ หรือ อีเมล' : 'Username or Email'}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                icon={<Mail size={16} />}
-              />
+              <div className="group relative">
+                <div className="flex items-center gap-2 rounded-[14px] transition-all duration-200 bg-white/80 dark:bg-black/60 border border-slate-300/80 dark:border-white/10 focus-within:bg-white dark:focus-within:bg-black/80 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:focus-within:ring-blue-500/30">
+                  <span className="pl-3.5 text-slate-400 dark:text-neutral-500 group-focus-within:text-blue-500 transition-colors shrink-0">
+                    <Mail size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder={lang === 'TH' ? 'ชื่อผู้ใช้ หรือ อีเมล' : 'Username or Email'}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-transparent px-3.5 py-3 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-neutral-500 outline-none pl-0"
+                  />
+                </div>
+              </div>
 
-              <CyberInput
-                type={showPassword ? 'text' : 'password'}
-                placeholder={lang === 'TH' ? 'รหัสผ่าน' : 'Password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                icon={<Lock size={16} />}
-                rightElement={
+              <div className="group relative">
+                <div className="flex items-center gap-2 rounded-[14px] transition-all duration-200 bg-white/80 dark:bg-black/60 border border-slate-300/80 dark:border-white/10 focus-within:bg-white dark:focus-within:bg-black/80 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:focus-within:ring-blue-500/30">
+                  <span className="pl-3.5 text-slate-400 dark:text-neutral-500 group-focus-within:text-blue-500 transition-colors shrink-0">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={lang === 'TH' ? 'รหัสผ่าน' : 'Password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-transparent px-3.5 py-3 text-[15px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-neutral-500 outline-none pl-0"
+                  />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                    className="pr-3.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors shrink-0"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
-                }
-              />
+                </div>
+              </div>
             </div>
 
             {error && (
@@ -229,70 +240,61 @@ export default function LoginPage() {
               </p>
             )}
 
-            <CyberButton
-              variant="primary"
-              fullWidth
-              glow
-              size="lg"
+            {/* Primary CTA */}
+            <button
               type="submit"
-              icon={
-                isLoading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <ArrowRight size={16} />
-                )
-              }
               disabled={isLoading || oauthLoading !== null}
+              className="w-full py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-semibold shadow-lg text-center cursor-pointer transition-colors flex items-center justify-center gap-2 text-[15px]"
             >
-              {isLoading
-                ? lang === 'TH'
-                  ? 'กำลังเข้าสู่ระบบ...'
-                  : 'Signing in...'
-                : lang === 'TH'
-                ? 'เข้าสู่ระบบ'
-                : 'Sign In'}
-            </CyberButton>
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>{lang === 'TH' ? 'กำลังเข้าสู่ระบบ...' : 'Signing in...'}</span>
+                </>
+              ) : (
+                <>
+                  <span>{lang === 'TH' ? 'เข้าสู่ระบบ' : 'Sign In'}</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
 
-            {/* OAuth providers */}
+            {/* OAuth Dividers */}
             <div className="flex items-center gap-3 pt-1">
-              <span className="h-px flex-1 bg-white/20 dark:bg-white/10" />
-              <span className="text-[12px] text-neutral-600 dark:text-neutral-400">
+              <span className="h-px flex-1 bg-slate-300/60 dark:bg-white/10" />
+              <span className="text-[12px] text-slate-500 dark:text-neutral-400">
                 {lang === 'TH' ? 'หรือดำเนินการต่อด้วย' : 'Or continue with'}
               </span>
-              <span className="h-px flex-1 bg-white/20 dark:bg-white/10" />
+              <span className="h-px flex-1 bg-slate-300/60 dark:bg-white/10" />
             </div>
 
+            {/* Social OAuth Buttons */}
             <div className="grid grid-cols-2 gap-3">
-              <CyberButton
-                variant="outline"
-                size="md"
-                fullWidth
+              <button
                 type="button"
-                icon={<FacebookIcon />}
-                loading={oauthLoading === 'facebook'}
                 disabled={isLoading || oauthLoading !== null}
                 onClick={() => handleOAuth('facebook')}
+                className="bg-white/70 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-neutral-200 hover:bg-white dark:hover:bg-white/10 rounded-full py-2.5 px-4 font-medium flex items-center justify-center gap-2 transition-all cursor-pointer text-sm w-full disabled:opacity-50"
               >
-                Facebook
-              </CyberButton>
-              <CyberButton
-                variant="outline"
-                size="md"
-                fullWidth
+                {oauthLoading === 'facebook' ? <Loader2 size={16} className="animate-spin" /> : <FacebookIcon />}
+                <span>Facebook</span>
+              </button>
+
+              <button
                 type="button"
-                icon={<GoogleIcon />}
-                loading={oauthLoading === 'google'}
                 disabled={isLoading || oauthLoading !== null}
                 onClick={() => handleOAuth('google')}
+                className="bg-white/70 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-neutral-200 hover:bg-white dark:hover:bg-white/10 rounded-full py-2.5 px-4 font-medium flex items-center justify-center gap-2 transition-all cursor-pointer text-sm w-full disabled:opacity-50"
               >
-                Google
-              </CyberButton>
+                {oauthLoading === 'google' ? <Loader2 size={16} className="animate-spin" /> : <GoogleIcon />}
+                <span>Google</span>
+              </button>
             </div>
 
-            <div className="mt-4 border-t border-white/20 dark:border-white/10 pt-4 text-center">
+            <div className="mt-4 border-t border-slate-300/60 dark:border-white/10 pt-4 text-center">
               <Link
                 href="/register"
-                className="text-[13px] text-neutral-700 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                className="text-[13px] text-slate-600 dark:text-neutral-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 {lang === 'TH' ? 'ยังไม่มีบัญชี?' : "Don't have an account?"}{' '}
                 <span className="font-semibold text-blue-600 dark:text-blue-400">
@@ -304,7 +306,7 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-neutral-600 dark:text-neutral-400">
+        <p className="mt-6 text-center text-xs text-slate-500 dark:text-neutral-400">
           Secured by Supabase Auth
         </p>
       </div>
